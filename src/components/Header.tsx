@@ -79,7 +79,15 @@ export const Header: React.FC<HeaderProps> = ({
               Breeder Verification Directory
             </button>
             <span>•</span>
-            <span className="text-[#82f5c1] font-semibold">24/7 Vet Support Line</span>
+            <button 
+              id="header-owner-portal-btn"
+              onClick={() => setCurrentScreen('owner-portal')}
+              className="inline-flex items-center gap-1 text-[#ffdcc3] hover:text-white bg-[#8d4b00]/70 hover:bg-[#8d4b00] px-2.5 py-0.5 rounded-full font-bold text-[11px] transition-colors cursor-pointer border border-[#ffcfad]/50 shadow-xs"
+              title="Platform Owner Console for Approving Pictures and Names"
+            >
+              <span className="material-symbols-outlined text-[13px]">shield_person</span>
+              <span>Owner Portal</span>
+            </button>
           </div>
         </div>
       </div>
@@ -308,6 +316,17 @@ export const Header: React.FC<HeaderProps> = ({
                         <span className="material-symbols-outlined text-base">verified_user</span>
                         <span>DNA & Health Vault</span>
                       </button>
+
+                      <div className="border-t border-[#f0f3ff] my-1"></div>
+
+                      <button 
+                        id="dropdown-owner-portal-btn"
+                        onClick={() => { setCurrentScreen('owner-portal'); setProfileOpen(false); }}
+                        className="w-full text-left px-3 py-2 bg-[#ffdcc3]/30 hover:bg-[#ffdcc3]/70 rounded-xl text-[#8d4b00] flex items-center gap-2 cursor-pointer font-bold"
+                      >
+                        <span className="material-symbols-outlined text-base text-[#8d4b00]">shield_person</span>
+                        <span>Owner Portal (Approvals)</span>
+                      </button>
                     </div>
 
                     <div className="border-t border-[#f0f3ff] pt-1">
@@ -506,6 +525,17 @@ export const Header: React.FC<HeaderProps> = ({
               className="w-full text-left px-3 py-2 text-xs font-bold text-[#111c2d] hover:bg-[#e7eeff] rounded-lg"
             >
               7-Point Health & Ethical Pledge
+            </button>
+            <button
+              id="mobile-owner-portal-btn"
+              onClick={() => { setCurrentScreen('owner-portal'); setMobileMenuOpen(false); }}
+              className="w-full text-left px-3 py-2 text-xs font-bold text-[#8d4b00] bg-[#ffdcc3]/40 hover:bg-[#ffdcc3]/70 rounded-lg flex items-center justify-between"
+            >
+              <span className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-sm">shield_person</span>
+                <span>Owner Portal (Approvals)</span>
+              </span>
+              <span className="text-[10px] uppercase font-bold bg-[#8d4b00] text-white px-1.5 py-0.5 rounded">Owner</span>
             </button>
             {/* User status in mobile menu */}
             <div className="pt-2 border-t border-[#dee8ff]">

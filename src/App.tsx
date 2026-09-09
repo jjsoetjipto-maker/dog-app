@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Screen, Dog, GearProduct, CartItem, UserProfile } from './types';
 import { DOGS, GEAR_PRODUCTS } from './data/mockData';
 import { loadStoredUser, saveStoredUser } from './data/userData';
+import { loadManagedDogs, saveManagedDogs } from './data/ownerApprovalData';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { HomeScreen } from './components/HomeScreen';
@@ -10,6 +11,7 @@ import { DogDetailScreen } from './components/DogDetailScreen';
 import { FindDogsScreen } from './components/FindDogsScreen';
 import { VerifiedBreedersScreen } from './components/VerifiedBreedersScreen';
 import { HealthSafetyScreen } from './components/HealthSafetyScreen';
+import { OwnerPortalScreen } from './components/OwnerPortalScreen';
 import { ChatDrawer } from './components/ChatDrawer';
 import { CartDrawer } from './components/CartDrawer';
 import { WishlistDrawer } from './components/WishlistDrawer';
@@ -19,8 +21,35 @@ import { EditProfileModal } from './components/EditProfileModal';
 import { Toast } from './components/Toast';
 
 export default function App() {
-  const [currentScreen, setCurrentScreen] = useState<Screen>('home');
-  const [selectedDog, setSelectedDog] = useState<Dog>(DOGS[0]); // Archie by default
+  // Managed dogs state (persisted in localStorage with approval statuses)
+  const [dogs, setDogs] = useState<Dog[]>(() => {
+    return loadManagedDogs();
+  });
+
+  // Check URL parameters or hash on initial load for direct portal access
+  const [currentScreen, setCurrentScreen] = useState<Screen>(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        if (
+          params.get('portal') === 'owner' ||
+          params.get('owner') === 'true' ||
+          window.location.hash === '#owner' ||
+          window.location.hash === '#owner-portal'
+        ) {
+          return 'owner-portal';
+        }
+      }
+    } catch {
+      // ignore
+    }
+    return 'home';
+  });
+
+  const [selectedDog, setSelectedDog] = useState<Dog>(() => {
+    const initialDogs = loadManagedDogs();
+    return initialDogs[0] || DOGS[0];
+  });
 
   // User Profile & Authentication State (persisted in localStorage)
   const [user, setUser] = useState<UserProfile>(loadStoredUser);
@@ -152,6 +181,42 @@ export default function App() {
   const cartItemsCount = cart.reduce((acc, item) => acc + item.quantity, 0);
   const wishlistItemsCount = favoritedDogIds.length + favoritedGearIds.length;
 
+  const handleAddDogSubmission = (newDog: Dog) => {
+    const updated = [newDog, ...dogs];
+    setDogs(updated);
+    saveManagedDogs(updated);
+  };
+
+  // Synchronize selected dog with updated state
+  const activeSelectedDog = dogs.find((d) => d.id === selectedDog.id) || selectedDog;
+
+  // Render standalone Owner Web Portal if selected
+  if (currentScreen === 'owner-portal') {
+    return (
+      <div className="min-h-screen bg-[#0a0f18] text-[#e3ecfc]">
+        <OwnerPortalScreen
+          dogs={dogs}
+          onUpdateDogs={(updatedDogs) => {
+            setDogs(updatedDogs);
+            saveManagedDogs(updatedDogs);
+            const refreshed = updatedDogs.find((d) => d.id === selectedDog.id);
+            if (refreshed) {
+              setSelectedDog(refreshed);
+            }
+          }}
+          onExitToMarketplace={() => setCurrentScreen('home')}
+          onShowToast={showToast}
+          onSelectDogPreview={(dog) => {
+            setSelectedDog(dog);
+            setCurrentScreen('dog-detail');
+          }}
+          currentUser={user}
+        />
+        <Toast message={toastMessage} onClose={() => setToastMessage(null)} />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-[#f9f9ff] text-[#111c2d] selection:bg-[#ffdcc3] selection:text-[#8d4b00]">
       
@@ -159,7 +224,7 @@ export default function App() {
       <Header
         currentScreen={currentScreen}
         setCurrentScreen={setCurrentScreen}
-        selectedDog={selectedDog}
+        selectedDog={activeSelectedDog}
         user={user}
         onOpenLogin={() => setIsAuthModalOpen(true)}
         onOpenEditProfile={() => setIsEditProfileModalOpen(true)}
@@ -182,7 +247,7 @@ export default function App() {
       <main className="flex-1">
         {currentScreen === 'home' && (
           <HomeScreen
-            dogs={DOGS}
+            dogs={dogs}
             gear={GEAR_PRODUCTS}
             onSelectDog={(dog) => {
               setSelectedDog(dog);
@@ -201,7 +266,7 @@ export default function App() {
 
         {currentScreen === 'find-dogs' && (
           <FindDogsScreen
-            dogs={DOGS}
+            dogs={dogs}
             onSelectDog={(dog) => {
               setSelectedDog(dog);
               setCurrentScreen('dog-detail');
@@ -227,7 +292,7 @@ export default function App() {
 
         {currentScreen === 'dog-detail' && (
           <DogDetailScreen
-            dog={selectedDog}
+            dog={activeSelectedDog}
             user={user}
             onOpenLogin={() => setIsAuthModalOpen(true)}
             onOpenChat={handleOpenChat}
@@ -240,7 +305,7 @@ export default function App() {
 
         {currentScreen === 'verified-breeders' && (
           <VerifiedBreedersScreen
-            dogs={DOGS}
+            dogs={dogs}
             onOpenChat={handleOpenChat}
             onSelectDog={(dog) => {
               setSelectedDog(dog);
@@ -284,7 +349,7 @@ export default function App() {
         onClose={() => setIsWishlistOpen(false)}
         favoritedDogIds={favoritedDogIds}
         favoritedGearIds={favoritedGearIds}
-        allDogs={DOGS}
+        allDogs={dogs}
         allGear={GEAR_PRODUCTS}
         onToggleDogFavorite={handleToggleDogFavorite}
         onToggleGearFavorite={handleToggleGearFavorite}
@@ -301,6 +366,7 @@ export default function App() {
         isOpen={isPostListingOpen}
         onClose={() => setIsPostListingOpen(false)}
         onShowToast={showToast}
+        onAddDog={handleAddDogSubmission}
       />
 
       {/* Authentication (Login/Signup) Modal */}

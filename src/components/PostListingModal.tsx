@@ -1,15 +1,18 @@
 import React, { useState } from 'react';
+import { Dog } from '../types';
 
 interface PostListingModalProps {
   isOpen: boolean;
   onClose: () => void;
   onShowToast: (msg: string) => void;
+  onAddDog?: (dog: Dog) => void;
 }
 
 export const PostListingModal: React.FC<PostListingModalProps> = ({
   isOpen,
   onClose,
-  onShowToast
+  onShowToast,
+  onAddDog
 }) => {
   const [listingType, setListingType] = useState<'dog' | 'gear'>('dog');
   const [title, setTitle] = useState('');
@@ -37,7 +40,41 @@ export const PostListingModal: React.FC<PostListingModalProps> = ({
     setIsSubmitting(true);
     setTimeout(() => {
       setIsSubmitting(false);
-      onShowToast('Listing application submitted! Our veterinary compliance team will review within 24 hours.');
+
+      if (listingType === 'dog' && onAddDog) {
+        const newDog: Dog = {
+          id: `dog-user-${Date.now()}`,
+          name: title.trim(),
+          breed: breedOrCategory || 'Golden Retriever',
+          category: 'puppy',
+          price: parseInt(price) || 1800,
+          location: location || 'Austin, TX',
+          ageText: '9 Weeks Old',
+          gender: 'Male',
+          color: 'Standard Pedigree',
+          image: 'https://images.unsplash.com/photo-1591769225440-811ad7d6eab2?auto=format&fit=crop&w=800&q=80',
+          gallery: [
+            'https://images.unsplash.com/photo-1591769225440-811ad7d6eab2?auto=format&fit=crop&w=800&q=80'
+          ],
+          breederName: kennelName,
+          breederBadge: 'Tier-1 Certified Breeder',
+          breederInitials: kennelName.slice(0, 2).toUpperCase(),
+          breederRating: 4.95,
+          breederReviewsCount: 3,
+          badges: ['DNA Verified', 'OFA Screened', 'Microchipped'],
+          verifiedStatus: 'Pending Owner Review',
+          summary: `Newly submitted companion listing for ${title}. Awaiting picture and name approval by the platform owner.`,
+          approvalStatus: 'pending',
+          nameApprovalStatus: 'pending',
+          photoApprovalStatus: 'pending',
+          nameNotes: 'Awaiting Owner name verification.',
+          photoNotes: 'Awaiting Owner picture quality inspection.',
+          submittedAt: 'Just now'
+        };
+        onAddDog(newDog);
+      }
+
+      onShowToast('Listing application submitted! The Platform Owner will review and approve the picture and name.');
       onClose();
     }, 1200);
   };

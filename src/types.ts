@@ -1,4 +1,6 @@
-export type Screen = 'home' | 'find-dogs' | 'dog-gear' | 'dog-detail' | 'verified-breeders' | 'health-safety';
+export type Screen = 'home' | 'find-dogs' | 'dog-gear' | 'dog-detail' | 'verified-breeders' | 'health-safety' | 'owner-portal';
+
+export type ApprovalStatus = 'approved' | 'pending' | 'flagged' | 'rejected';
 
 export interface Dog {
   id: string;
@@ -34,6 +36,15 @@ export interface Dog {
     title: string;
     desc: string;
   }[];
+  // Owner moderation & governance fields
+  approvalStatus?: ApprovalStatus;
+  nameApprovalStatus?: ApprovalStatus;
+  photoApprovalStatus?: ApprovalStatus;
+  photoNotes?: string;
+  nameNotes?: string;
+  submittedAt?: string;
+  lastReviewedAt?: string;
+  reviewedBy?: string;
 }
 
 export interface GearProduct {

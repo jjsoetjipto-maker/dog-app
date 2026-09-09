@@ -248,6 +248,15 @@ export const Footer: React.FC<FooterProps> = ({ setCurrentScreen, onShowToast, o
             >
               Veterinary Review Protocol
             </button>
+            <button 
+              id="footer-owner-portal-btn"
+              onClick={() => setCurrentScreen('owner-portal')}
+              className="text-[#ffdcc3] hover:text-white font-bold flex items-center gap-1 transition-colors cursor-pointer"
+              title="Platform Owner Moderation Console"
+            >
+              <span className="material-symbols-outlined text-xs">shield_person</span>
+              <span>Owner Portal</span>
+            </button>
           </div>
         </div>
       </div>
