@@ -1,0 +1,8 @@
+{
+  "name": "PawPalace",
+  "description": "Ethical companion marketplace pairing verified breeders, accredited shelters, and canine wellness specialists with discerning guardians.",
+  "requestFramePermissions": [
+    "geolocation"
+  ],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
