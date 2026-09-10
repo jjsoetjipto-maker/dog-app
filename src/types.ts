@@ -2,6 +2,13 @@ export type Screen = 'home' | 'find-dogs' | 'dog-gear' | 'dog-detail' | 'verifie
 
 export type ApprovalStatus = 'approved' | 'pending' | 'flagged' | 'rejected';
 
+export interface DogPricePoint {
+  date: string;
+  price: number;
+  milestone: string;
+  note?: string;
+}
+
 export interface Dog {
   id: string;
   name: string;
@@ -9,6 +16,7 @@ export interface Dog {
   category: 'puppy' | 'young' | 'adult' | 'senior' | 'rescue';
   isRescue?: boolean;
   price: number;
+  priceHistory?: DogPricePoint[];
   adoptionFeeLabel?: string;
   location: string;
   distanceMiles?: number;
@@ -65,6 +73,8 @@ export interface GearProduct {
   colors?: string[];
   sizes?: string[];
   subBadge?: string;
+  approvalStatus?: ApprovalStatus;
+  rejectionNotes?: string;
 }
 
 export interface CartItem {
@@ -96,13 +106,38 @@ export interface SafeMeetingPoint {
   isGroundingVerified?: boolean;
 }
 
+export interface DogActivitiesInfo {
+  favoriteToys: string[];
+  favoriteGames: string[];
+  dailyQuirk: string;
+  relaxationSpot: string;
+  favoriteTreat: string;
+  energyWindow: string;
+  socialStyle: string;
+}
+
+export interface SellerProfileInfo {
+  name: string;
+  role: string;
+  avatarUrl: string;
+  kennelOrFacility: string;
+  location: string;
+  phoneVerified: boolean;
+  yearsActive: number;
+  responseRate: string;
+  badge: string;
+  quote?: string;
+}
+
 export interface ChatMessage {
   id: string;
-  sender: 'user' | 'breeder';
+  sender: 'user' | 'breeder' | 'seller';
   senderName: string;
   text: string;
   timestamp: string;
   proposedMeetingPoint?: SafeMeetingPoint;
+  activitiesInfo?: DogActivitiesInfo;
+  sellerProfile?: SellerProfileInfo;
 }
 
 export interface Testimonial {

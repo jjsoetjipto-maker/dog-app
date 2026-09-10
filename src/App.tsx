@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Screen, Dog, GearProduct, CartItem, UserProfile } from './types';
 import { DOGS, GEAR_PRODUCTS } from './data/mockData';
 import { loadStoredUser, saveStoredUser } from './data/userData';
@@ -76,8 +76,35 @@ export default function App() {
   const [isChatOpen, setIsChatOpen] = useState<boolean>(false);
   const [chatDog, setChatDog] = useState<Dog>(DOGS[0]);
 
+  // Managed gear products (persisted in localStorage)
+  const [gearProducts, setGearProducts] = useState<GearProduct[]>(() => {
+    try {
+      const saved = localStorage.getItem('pawpalace_managed_gear');
+      if (saved) return JSON.parse(saved);
+    } catch {
+      // ignore
+    }
+    return GEAR_PRODUCTS;
+  });
+
   // Post Listing Modal state
   const [isPostListingOpen, setIsPostListingOpen] = useState<boolean>(false);
+  const [listingTypeToOpen, setListingTypeToOpen] = useState<'dog' | 'gear'>('dog');
+
+  const handleOpenPostListing = (type: 'dog' | 'gear' = 'dog') => {
+    setListingTypeToOpen(type);
+    setIsPostListingOpen(true);
+  };
+
+  const handleAddGearSubmission = (newGear: GearProduct) => {
+    const updated = [newGear, ...gearProducts];
+    setGearProducts(updated);
+    try {
+      localStorage.setItem('pawpalace_managed_gear', JSON.stringify(updated));
+    } catch {
+      // ignore
+    }
+  };
 
   // Global search state
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -161,8 +188,28 @@ export default function App() {
     );
   };
 
+  // Rejection check helper
+  const isDogRejected = (d: Dog) =>
+    d.approvalStatus === 'rejected' ||
+    d.photoApprovalStatus === 'rejected' ||
+    d.nameApprovalStatus === 'rejected';
+
+  // Public shop dogs: strictly excludes any dog rejected by the owner
+  const shopDogs = useMemo(() => {
+    return dogs.filter((d) => !isDogRejected(d));
+  }, [dogs]);
+
+  // Public shop gear: strictly excludes any gear rejected by the owner
+  const shopGearProducts = useMemo(() => {
+    return gearProducts.filter((g) => g.approvalStatus !== 'rejected');
+  }, [gearProducts]);
+
   // Chat handlers
   const handleOpenChat = (dog: Dog) => {
+    if (isDogRejected(dog)) {
+      showToast(`Chat is unavailable for "${dog.name}" because this listing was rejected by moderation.`);
+      return;
+    }
     setChatDog(dog);
     setSelectedDog(dog);
     setIsChatOpen(true);
@@ -179,7 +226,15 @@ export default function App() {
   };
 
   const cartItemsCount = cart.reduce((acc, item) => acc + item.quantity, 0);
-  const wishlistItemsCount = favoritedDogIds.length + favoritedGearIds.length;
+
+  // Wishlist count only tallies active, non-rejected items
+  const wishlistItemsCount = useMemo(() => {
+    const shopDogIds = new Set(shopDogs.map((d) => d.id));
+    const shopGearIds = new Set(shopGearProducts.map((g) => g.id));
+    const validDogsCount = favoritedDogIds.filter((id) => shopDogIds.has(id)).length;
+    const validGearCount = favoritedGearIds.filter((id) => shopGearIds.has(id)).length;
+    return validDogsCount + validGearCount;
+  }, [favoritedDogIds, favoritedGearIds, shopDogs, shopGearProducts]);
 
   const handleAddDogSubmission = (newDog: Dog) => {
     const updated = [newDog, ...dogs];
@@ -187,8 +242,12 @@ export default function App() {
     saveManagedDogs(updated);
   };
 
-  // Synchronize selected dog with updated state
-  const activeSelectedDog = dogs.find((d) => d.id === selectedDog.id) || selectedDog;
+  // Synchronize selected dog with updated state (prefer live shop dog if current was rejected)
+  const activeSelectedDog = useMemo(() => {
+    const found = dogs.find((d) => d.id === selectedDog.id);
+    if (found) return found;
+    return shopDogs[0] || dogs[0];
+  }, [dogs, selectedDog.id, shopDogs]);
 
   // Render standalone Owner Web Portal if selected
   if (currentScreen === 'owner-portal') {
@@ -203,6 +262,13 @@ export default function App() {
             if (refreshed) {
               setSelectedDog(refreshed);
             }
+          }}
+          gearProducts={gearProducts}
+          onUpdateGear={(updatedGear) => {
+            setGearProducts(updatedGear);
+            try {
+              localStorage.setItem('pawpalace_managed_gear', JSON.stringify(updatedGear));
+            } catch {}
           }}
           onExitToMarketplace={() => setCurrentScreen('home')}
           onShowToast={showToast}
@@ -233,7 +299,7 @@ export default function App() {
         onOpenCart={() => setIsCartOpen(true)}
         wishlistCount={wishlistItemsCount}
         onOpenWishlist={() => setIsWishlistOpen(true)}
-        onOpenPostListing={() => setIsPostListingOpen(true)}
+        onOpenPostListing={() => handleOpenPostListing('dog')}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         zipCode={zipCode}
@@ -247,8 +313,8 @@ export default function App() {
       <main className="flex-1">
         {currentScreen === 'home' && (
           <HomeScreen
-            dogs={dogs}
-            gear={GEAR_PRODUCTS}
+            dogs={shopDogs}
+            gear={shopGearProducts}
             onSelectDog={(dog) => {
               setSelectedDog(dog);
               setCurrentScreen('dog-detail');
@@ -266,7 +332,7 @@ export default function App() {
 
         {currentScreen === 'find-dogs' && (
           <FindDogsScreen
-            dogs={dogs}
+            dogs={shopDogs}
             onSelectDog={(dog) => {
               setSelectedDog(dog);
               setCurrentScreen('dog-detail');
@@ -277,16 +343,18 @@ export default function App() {
             setCurrentScreen={setCurrentScreen}
             onShowToast={showToast}
             initialSearchQuery={searchQuery}
+            onOpenPostListing={() => handleOpenPostListing('dog')}
           />
         )}
 
         {currentScreen === 'dog-gear' && (
           <GearScreen
-            products={GEAR_PRODUCTS}
+            products={shopGearProducts}
             onAddToCart={handleAddToCart}
             onToggleFavorite={handleToggleGearFavorite}
             favoritedGearIds={favoritedGearIds}
             onShowToast={showToast}
+            onOpenPostGearListing={() => handleOpenPostListing('gear')}
           />
         )}
 
@@ -297,7 +365,7 @@ export default function App() {
             onOpenLogin={() => setIsAuthModalOpen(true)}
             onOpenChat={handleOpenChat}
             onAddToCart={handleAddToCart}
-            recommendedGear={GEAR_PRODUCTS}
+            recommendedGear={shopGearProducts}
             setCurrentScreen={setCurrentScreen}
             onShowToast={showToast}
           />
@@ -305,7 +373,7 @@ export default function App() {
 
         {currentScreen === 'verified-breeders' && (
           <VerifiedBreedersScreen
-            dogs={dogs}
+            dogs={shopDogs}
             onOpenChat={handleOpenChat}
             onSelectDog={(dog) => {
               setSelectedDog(dog);
@@ -349,8 +417,8 @@ export default function App() {
         onClose={() => setIsWishlistOpen(false)}
         favoritedDogIds={favoritedDogIds}
         favoritedGearIds={favoritedGearIds}
-        allDogs={dogs}
-        allGear={GEAR_PRODUCTS}
+        allDogs={shopDogs}
+        allGear={shopGearProducts}
         onToggleDogFavorite={handleToggleDogFavorite}
         onToggleGearFavorite={handleToggleGearFavorite}
         onSelectDog={(dog) => {
@@ -367,6 +435,8 @@ export default function App() {
         onClose={() => setIsPostListingOpen(false)}
         onShowToast={showToast}
         onAddDog={handleAddDogSubmission}
+        onAddGear={handleAddGearSubmission}
+        initialListingType={listingTypeToOpen}
       />
 
       {/* Authentication (Login/Signup) Modal */}

@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { Dog, GearProduct, Screen } from '../types';
+import { DogIndividualPriceChart } from './DogIndividualPriceChart';
+import { DogRaisingTipsCard } from './DogRaisingTipsCard';
 
 interface HomeScreenProps {
   dogs: Dog[];
@@ -204,56 +206,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
 
             </div>
 
-            {/* Right Column: Hero Dog Visual Showcase */}
-            <div className="lg:col-span-5 relative">
-              <div className="relative rounded-3xl overflow-hidden shadow-2xl border-4 border-white aspect-[4/5] group">
-                <img
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuC8bzKzoKBF6IYOG2tkQOx469_zgpHJ8D0LbpZAWnd8YiA4vdPcGe-1nl4eazTzc-jYR0rYKF81u91V4wMDRs8W5_keE7m8Ix5jU9IfMvNivScHtU2pwN0w_k5J4GfcRtCVuXfKpfJayY0uzB33r2bdJZ3G8C5690RW8WlvvoDhfDu30q6OHlSExtQMZrha5dq0wPmMEYrfQybu7H7oo_dFAHV8nRT4qPpqSbcIU9EGcb6FdpY6b9RWQg"
-                  alt="Golden Retriever Companion"
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                  referrerPolicy="no-referrer"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
-
-                {/* Floating Floating Pill on Image */}
-                <div className="absolute top-4 left-4 bg-white/95 backdrop-blur-md rounded-2xl p-3 shadow-lg border border-[#e7eeff] max-w-xs">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-[#006c4a] animate-pulse"></span>
-                    <span className="font-bold text-xs text-[#111c2d]">100% Home Raised Litter</span>
-                  </div>
-                  <p className="text-[11px] text-[#554336] mt-0.5">
-                    OFA certified hips, elbows, eyes & cardiac.
-                  </p>
-                </div>
-
-                {/* Bottom Highlight */}
-                <div className="absolute bottom-4 left-4 right-4 bg-white/95 backdrop-blur-md rounded-2xl p-4 shadow-xl border border-[#e7eeff]">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-bold text-base text-[#111c2d]">Archie</h3>
-                        <span className="bg-[#ffdcc3] text-[#8d4b00] text-[10px] font-bold px-2 py-0.5 rounded-full">
-                          Golden Retriever
-                        </span>
-                      </div>
-                      <p className="text-xs text-[#554336] mt-0.5">
-                        Sunridge Goldens • Austin, TX (12 mi)
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => {
-                        const archie = dogs.find(d => d.id === 'archie') || dogs[0];
-                        onSelectDog(archie);
-                        setCurrentScreen('dog-detail');
-                      }}
-                      className="bg-[#8d4b00] text-white px-3.5 py-2 rounded-xl text-xs font-bold hover:bg-[#b15f00] transition-colors cursor-pointer"
-                    >
-                      Meet Archie
-                    </button>
-                  </div>
-                </div>
-
-              </div>
+            {/* Right Column: Tips on How to Raise Dogs (Expert Guide Showcase) */}
+            <div className="lg:col-span-5 relative flex flex-col min-h-[460px]">
+              <DogRaisingTipsCard onShowToast={onShowToast} />
             </div>
 
           </div>
@@ -429,6 +384,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                         <span>{dog.location}</span>
                       </span>
                     </div>
+
+                    {/* Individual Dog Price Line Chart */}
+                    <DogIndividualPriceChart dog={dog} variant="card" />
 
                     {/* Breeder info */}
                     <div className="mt-3 pt-3 border-t border-[#f0f3ff] flex items-center justify-between">

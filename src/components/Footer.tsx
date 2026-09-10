@@ -99,12 +99,11 @@ export const Footer: React.FC<FooterProps> = ({ setCurrentScreen, onShowToast, o
               <li>
                 <button 
                   onClick={() => {
-                    if (onSelectFeaturedDog) onSelectFeaturedDog();
-                    setCurrentScreen('dog-detail');
+                    setCurrentScreen('home');
                   }}
                   className="hover:text-white transition-colors cursor-pointer text-left"
                 >
-                  Featured: Archie (Golden)
+                  Tips on How to Raise Dogs (Guide)
                 </button>
               </li>
               <li>

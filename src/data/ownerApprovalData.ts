@@ -130,6 +130,38 @@ export const INITIAL_SUBMISSION_QUEUE: Dog[] = [
     photoApprovalStatus: 'flagged' as ApprovalStatus,
     photoNotes: 'Single photo provided. Owner may request additional headshot and profile angle.',
     submittedAt: '35 minutes ago',
+  },
+  {
+    id: 'rejected-buster',
+    name: 'Buster',
+    breed: 'Beagle',
+    category: 'puppy',
+    price: 950,
+    location: 'Fort Worth, TX',
+    distanceMiles: 190,
+    ageText: '10 Weeks Old',
+    gender: 'Male',
+    color: 'Tri-Color Classic',
+    image: 'https://images.unsplash.com/photo-1505628346881-b72b27e84530?auto=format&fit=crop&w=800&q=80',
+    gallery: [
+      'https://images.unsplash.com/photo-1505628346881-b72b27e84530?auto=format&fit=crop&w=800&q=80'
+    ],
+    breederName: 'Lone Star Kennels (Unverified)',
+    breederBadge: 'Rejected Applicant',
+    breederInitials: 'LS',
+    breederRating: 3.2,
+    breederReviewsCount: 2,
+    badges: ['Unverified Source'],
+    verifiedStatus: 'Rejected by Owner',
+    summary: 'Puppy submission rejected by platform owner due to missing parental health and OFA genetic clearances.',
+    approvalStatus: 'rejected' as ApprovalStatus,
+    nameApprovalStatus: 'rejected' as ApprovalStatus,
+    photoApprovalStatus: 'rejected' as ApprovalStatus,
+    nameNotes: 'Rejected: Applicant submitted misleading pedigree registration.',
+    photoNotes: 'Rejected by Owner: Low resolution, missing required dam nursing verification photos. Excluded from public shop.',
+    submittedAt: 'Yesterday',
+    lastReviewedAt: 'Yesterday',
+    reviewedBy: OWNER_DEFAULT_EMAIL,
   }
 ];
 

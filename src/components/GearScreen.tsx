@@ -8,6 +8,7 @@ interface GearScreenProps {
   onToggleFavorite: (id: string) => void;
   favoritedGearIds: string[];
   onShowToast: (msg: string) => void;
+  onOpenPostGearListing?: () => void;
 }
 
 export const GearScreen: React.FC<GearScreenProps> = ({
@@ -15,7 +16,8 @@ export const GearScreen: React.FC<GearScreenProps> = ({
   onAddToCart,
   onToggleFavorite,
   favoritedGearIds,
-  onShowToast
+  onShowToast,
+  onOpenPostGearListing
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedSize, setSelectedSize] = useState<string>('all');
@@ -35,6 +37,8 @@ export const GearScreen: React.FC<GearScreenProps> = ({
 
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
+      // Rejection safeguard: Exclude any equipment rejected by owner from the shop
+      if (p.approvalStatus === 'rejected') return false;
       if (selectedCategory !== 'all' && p.category !== selectedCategory) return false;
       if (p.price > maxPrice) return false;
       if (minRating > 0 && p.rating < minRating) return false;
@@ -71,6 +75,19 @@ export const GearScreen: React.FC<GearScreenProps> = ({
             <p className="text-xs sm:text-sm text-[#dee8ff]/80 leading-relaxed">
               Veterinarian-engineered orthopedic beds with spinal support, crash-tested harnesses that eliminate tracheal pressure, IATA-compliant travel kennels, and smart GPS tracking designed for lifetime canine vitality.
             </p>
+
+            {onOpenPostGearListing && (
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={onOpenPostGearListing}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#ffdcc3] hover:bg-[#ffe3ce] text-[#8d4b00] rounded-2xl font-bold text-xs shadow-lg transition-all cursor-pointer hover:scale-102"
+                >
+                  <span className="material-symbols-outlined text-lg">photo_camera</span>
+                  <span>List Equipment / Product (Take Live Photo)</span>
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="absolute right-0 bottom-0 opacity-10 pointer-events-none text-white hidden md:block">
@@ -248,18 +265,31 @@ export const GearScreen: React.FC<GearScreenProps> = ({
                 </p>
               </div>
 
-              <div className="flex items-center gap-2 text-xs">
-                <span className="text-[#887364]">Sort by:</span>
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className="bg-[#f0f3ff] border border-[#dee8ff] rounded-xl px-3 py-1.5 font-bold text-[#111c2d] focus:outline-none focus:border-[#8d4b00] cursor-pointer"
-                >
-                  <option value="featured">Featured Essentials</option>
-                  <option value="rating">Highest Rated</option>
-                  <option value="price-low">Price: Low to High</option>
-                  <option value="price-high">Price: High to Low</option>
-                </select>
+              <div className="flex flex-wrap items-center gap-2 text-xs">
+                {onOpenPostGearListing && (
+                  <button
+                    type="button"
+                    onClick={onOpenPostGearListing}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-[#8d4b00] hover:bg-[#b15f00] text-white rounded-xl font-bold shadow-xs transition-all cursor-pointer"
+                  >
+                    <span className="material-symbols-outlined text-base">photo_camera</span>
+                    <span>List Equipment with Photo</span>
+                  </button>
+                )}
+
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[#887364]">Sort by:</span>
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    className="bg-[#f0f3ff] border border-[#dee8ff] rounded-xl px-3 py-1.5 font-bold text-[#111c2d] focus:outline-none focus:border-[#8d4b00] cursor-pointer"
+                  >
+                    <option value="featured">Featured Essentials</option>
+                    <option value="rating">Highest Rated</option>
+                    <option value="price-low">Price: Low to High</option>
+                    <option value="price-high">Price: High to Low</option>
+                  </select>
+                </div>
               </div>
             </div>
 

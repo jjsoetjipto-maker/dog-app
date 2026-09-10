@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Dog, GearProduct, Screen, UserProfile, SafeMeetingPoint } from '../types';
 import { getFallbackMeetingPoints } from '../data/meetingPointsData';
 import { SafeMeetingPointModal } from './SafeMeetingPointModal';
+import { DogIndividualPriceChart } from './DogIndividualPriceChart';
+import { getSellerForDog, getDogActivities } from '../data/dogCareAndActivities';
 
 interface DogDetailScreenProps {
   dog: Dog;
@@ -24,6 +26,9 @@ export const DogDetailScreen: React.FC<DogDetailScreenProps> = ({
   setCurrentScreen,
   onShowToast
 }) => {
+  const seller = getSellerForDog(dog);
+  const activities = getDogActivities(dog);
+
   const galleryImages = dog.gallery && dog.gallery.length > 0 ? dog.gallery : [dog.image];
   const [activeImageIndex, setActiveImageIndex] = useState(0);
 
@@ -86,6 +91,44 @@ export const DogDetailScreen: React.FC<DogDetailScreenProps> = ({
         <span>/</span>
         <span className="text-[#111c2d] font-bold">{dog.name}</span>
       </nav>
+
+      {/* Owner Moderation Rejection Alert Banner (Hidden from Shop) */}
+      {(dog.approvalStatus === 'rejected' || dog.photoApprovalStatus === 'rejected' || dog.nameApprovalStatus === 'rejected') && (
+        <div className="bg-red-50 border-2 border-red-300 rounded-3xl p-5 flex flex-col sm:flex-row items-start gap-4 shadow-sm text-red-950 animate-in fade-in duration-300">
+          <div className="w-10 h-10 rounded-2xl bg-red-100 border border-red-300 flex items-center justify-center shrink-0 text-red-700">
+            <span className="material-symbols-outlined text-2xl">block</span>
+          </div>
+          <div className="flex-1 space-y-1.5">
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="font-bold text-sm text-red-900">
+                Listing Rejected by Platform Owner • Excluded from Shop
+              </h3>
+              <span className="bg-red-700 text-white text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                Unavailable
+              </span>
+            </div>
+            <p className="text-xs text-red-800 leading-relaxed">
+              This companion listing was rejected by the owner during pedigree, health clearance, or photo moderation.
+              It is not listed in the public marketplace or searchable catalog, and adoption applications are locked.
+            </p>
+            {(dog.photoNotes || dog.nameNotes) && (
+              <p className="text-[11px] text-red-700 bg-red-100/70 p-2.5 rounded-xl border border-red-200 mt-2 italic">
+                Moderation Notes: &ldquo;{dog.photoNotes || dog.nameNotes}&rdquo;
+              </p>
+            )}
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => setCurrentScreen('find-dogs')}
+                className="px-4 py-2 bg-red-800 hover:bg-red-900 text-white font-bold text-xs rounded-xl inline-flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+              >
+                <span className="material-symbols-outlined text-sm">storefront</span>
+                <span>Browse Available Shop Companions</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Two-Column Profile Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
@@ -200,6 +243,120 @@ export const DogDetailScreen: React.FC<DogDetailScreenProps> = ({
 
           </div>
 
+          {/* What the Dog Likes to Do (Hobbies, Toys & Daily Quirks) */}
+          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#dee8ff] shadow-xs space-y-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#8d4b00] bg-[#ffdcc3] px-2.5 py-0.5 rounded-full">
+                  Seller Daily Care Observations
+                </span>
+                <h3 className="font-['Epilogue'] font-bold text-xl text-[#111c2d] mt-1.5">
+                  What Does {dog.name} Like to Do?
+                </h3>
+                <p className="text-xs text-[#554336] mt-0.5">
+                  Direct personality insights, favorite play activities, and habits observed by seller {seller.name}.
+                </p>
+              </div>
+              <span className="material-symbols-outlined text-[#8d4b00] text-3xl">sports_baseball</span>
+            </div>
+
+            {/* Favorite Toys */}
+            <div className="space-y-2">
+              <h4 className="text-xs font-bold text-[#111c2d] flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-sm text-[#8d4b00]">toys</span>
+                <span>Favorite Toys & Chews</span>
+              </h4>
+              <div className="flex flex-wrap gap-2">
+                {activities.favoriteToys.map((toy, idx) => (
+                  <span
+                    key={idx}
+                    className="bg-[#fff9f4] border border-[#ffdcc3] text-[#8d4b00] text-xs font-semibold px-3 py-1.5 rounded-full flex items-center gap-1.5"
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#8d4b00]"></span>
+                    <span>{toy}</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Favorite Games & Daily Play */}
+            <div className="space-y-2">
+              <h4 className="text-xs font-bold text-[#111c2d] flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-sm text-[#006c4a]">directions_run</span>
+                <span>Favorite Games & Daily Play</span>
+              </h4>
+              <div className="flex flex-wrap gap-2">
+                {activities.favoriteGames.map((game, idx) => (
+                  <span
+                    key={idx}
+                    className="bg-[#f0fbf6] border border-[#d2f4e3] text-[#006c4a] text-xs font-semibold px-3 py-1.5 rounded-full flex items-center gap-1.5"
+                  >
+                    <span className="material-symbols-outlined text-sm text-[#006c4a]">sports_tennis</span>
+                    <span>{game}</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Habits & Downtime Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 text-xs">
+              <div className="bg-[#f9f9ff] border border-[#dee8ff] p-3.5 rounded-2xl">
+                <span className="text-[11px] font-bold text-[#8d4b00] flex items-center gap-1">
+                  <span className="material-symbols-outlined text-sm">auto_awesome</span>
+                  <span>Charming Daily Quirk</span>
+                </span>
+                <p className="text-xs text-[#554336] mt-1 italic font-medium leading-relaxed">
+                  &ldquo;{activities.dailyQuirk}&rdquo;
+                </p>
+              </div>
+
+              <div className="bg-[#f9f9ff] border border-[#dee8ff] p-3.5 rounded-2xl">
+                <span className="text-[11px] font-bold text-[#111c2d] flex items-center gap-1">
+                  <span className="material-symbols-outlined text-sm text-[#006c4a]">bedtime</span>
+                  <span>Rest & Relaxation Habit</span>
+                </span>
+                <p className="text-xs text-[#554336] mt-1 leading-relaxed">
+                  {activities.relaxationSpot}
+                </p>
+              </div>
+
+              <div className="bg-[#f9f9ff] border border-[#dee8ff] p-3.5 rounded-2xl">
+                <span className="text-[11px] font-bold text-[#111c2d] flex items-center gap-1">
+                  <span className="material-symbols-outlined text-sm text-[#8d4b00]">cookie</span>
+                  <span>Favorite Healthy Treat</span>
+                </span>
+                <p className="text-xs text-[#554336] mt-1 leading-relaxed">
+                  {activities.favoriteTreat}
+                </p>
+              </div>
+
+              <div className="bg-[#f9f9ff] border border-[#dee8ff] p-3.5 rounded-2xl">
+                <span className="text-[11px] font-bold text-[#111c2d] flex items-center gap-1">
+                  <span className="material-symbols-outlined text-sm text-[#006c4a]">bolt</span>
+                  <span>Peak Playtime Window</span>
+                </span>
+                <p className="text-xs text-[#554336] mt-1 leading-relaxed">
+                  {activities.energyWindow}
+                </p>
+              </div>
+            </div>
+
+            {/* Inquire Action Button */}
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => onOpenChat(dog)}
+                className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-[#fff5ed] to-[#ffebd8] hover:from-[#ffe8d2] hover:to-[#ffdcc3] border border-[#ffdcc3] text-[#8d4b00] font-bold text-xs flex items-center justify-between cursor-pointer transition-all shadow-2xs"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-base">chat</span>
+                  <span>Chat with Seller ({seller.name}) about {dog.name}&apos;s Hobbies & Routine</span>
+                </div>
+                <span className="material-symbols-outlined text-sm">arrow_forward</span>
+              </button>
+            </div>
+          </div>
+
           {/* Health & Genetic Credentials Checklist */}
           <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#dee8ff] shadow-xs space-y-5">
             <div className="flex items-center justify-between">
@@ -243,6 +400,9 @@ export const DogDetailScreen: React.FC<DogDetailScreenProps> = ({
               </button>
             </div>
           </div>
+
+          {/* Individual Dog Price Trajectory & Milestone Line Chart */}
+          <DogIndividualPriceChart dog={dog} variant="detailed" />
 
           {/* Safe Meeting & Handshake Point Feature */}
           <div className="bg-white rounded-3xl p-6 sm:p-7 border border-[#dee8ff] shadow-xs space-y-4">
@@ -414,25 +574,36 @@ export const DogDetailScreen: React.FC<DogDetailScreenProps> = ({
                 className="w-full bg-[#f0f3ff] hover:bg-[#dee8ff] text-[#111c2d] border border-[#dee8ff] py-3.5 rounded-2xl font-bold text-xs transition-colors flex items-center justify-center gap-2 cursor-pointer"
               >
                 <span className="material-symbols-outlined text-base text-[#8d4b00]">chat</span>
-                <span>Inquire / Message Breeder</span>
+                <span>Chat with Seller ({seller.name})</span>
+              </button>
+
+              <button
+                onClick={() => onOpenChat(dog)}
+                className="w-full bg-[#fff5ed] hover:bg-[#ffebd8] text-[#8d4b00] border border-[#ffdcc3] py-2.5 rounded-xl font-bold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-sm">sports_baseball</span>
+                <span>Ask: What does {dog.name} like to do?</span>
               </button>
             </div>
 
-            {/* Breeder Summary Card */}
+            {/* Seller Summary Card */}
             <div className="pt-5 border-t border-[#e7eeff]">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#8d4b00] to-[#ffdcc3] text-[#8d4b00] font-bold text-sm flex items-center justify-center border border-[#dee8ff]">
-                  {dog.breederInitials}
-                </div>
+                <img
+                  src={seller.avatarUrl}
+                  alt={seller.name}
+                  className="w-12 h-12 rounded-2xl object-cover border-2 border-[#dee8ff] shadow-xs shrink-0"
+                  referrerPolicy="no-referrer"
+                />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1">
                     <h4 className="font-bold text-xs text-[#111c2d] truncate">
-                      {dog.breederName}
+                      {seller.name}
                     </h4>
                     <span className="material-symbols-outlined text-sm text-[#006c4a]">verified</span>
                   </div>
-                  <p className="text-[11px] text-[#887364]">
-                    {dog.location} • {dog.distanceMiles || 12} miles away
+                  <p className="text-[11px] text-[#554336] truncate">
+                    {seller.role}
                   </p>
                   <div className="flex items-center gap-2 text-[11px] font-bold text-[#8d4b00] mt-0.5">
                     <span className="flex items-center gap-0.5">
@@ -440,26 +611,26 @@ export const DogDetailScreen: React.FC<DogDetailScreenProps> = ({
                       <span>{dog.breederRating}</span>
                     </span>
                     <span>•</span>
-                    <span className="text-[#006c4a] font-semibold">{dog.breederBadge}</span>
+                    <span className="text-[#006c4a] font-semibold">{seller.badge}</span>
                   </div>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-2 mt-4 text-[11px] text-[#554336] bg-[#f0f3ff] p-3 rounded-2xl">
                 <div>
-                  <span className="text-[#887364] block">Response Rate</span>
-                  <span className="font-bold text-[#111c2d]">99% within 1 hr</span>
+                  <span className="text-[#887364] block">Direct Seller Response</span>
+                  <span className="font-bold text-[#111c2d]">{seller.responseRate}</span>
                 </div>
                 <div>
-                  <span className="text-[#887364] block">Breeder History</span>
-                  <span className="font-bold text-[#111c2d]">12 Years Audited</span>
+                  <span className="text-[#887364] block">Seller Experience</span>
+                  <span className="font-bold text-[#111c2d]">{seller.yearsActive} Years Certified</span>
                 </div>
               </div>
             </div>
 
           </div>
 
-          {/* Interactive "Apply to Welcome Archie" Form */}
+          {/* Interactive Guardian Application Form */}
           <div id="apply-section" className="bg-white rounded-3xl p-6 sm:p-7 border border-[#dee8ff] shadow-sm space-y-4">
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-[#8d4b00] text-xl">pets</span>
@@ -520,6 +691,21 @@ export const DogDetailScreen: React.FC<DogDetailScreenProps> = ({
                     <span>View Meeting Details</span>
                   </button>
                 </div>
+              </div>
+            ) : (dog.approvalStatus === 'rejected' || dog.photoApprovalStatus === 'rejected' || dog.nameApprovalStatus === 'rejected') ? (
+              <div className="bg-red-50 border border-red-200 rounded-2xl p-5 text-center space-y-3">
+                <span className="material-symbols-outlined text-3xl text-red-600">lock</span>
+                <h4 className="font-bold text-xs text-red-900">Adoption Applications Locked</h4>
+                <p className="text-[11px] text-red-700 leading-relaxed">
+                  This companion listing was rejected by platform owner moderation and is excluded from shop adoption.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setCurrentScreen('find-dogs')}
+                  className="px-4 py-2 bg-red-800 text-white font-bold text-xs rounded-xl hover:bg-red-900 transition-colors cursor-pointer shadow-xs"
+                >
+                  Browse Available Companions
+                </button>
               </div>
             ) : (
               <form onSubmit={handleApply} className="space-y-3 text-xs">
@@ -696,7 +882,7 @@ export const DogDetailScreen: React.FC<DogDetailScreenProps> = ({
             )}
           </div>
 
-          {/* Recommended Starter Gear for Archie */}
+          {/* Recommended Starter Gear for Dog */}
           <div className="bg-white rounded-3xl p-6 border border-[#dee8ff] shadow-xs space-y-4">
             <div className="flex items-center justify-between">
               <h4 className="font-bold text-xs text-[#111c2d] flex items-center gap-1.5">

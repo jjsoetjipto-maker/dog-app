@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Dog, Screen } from '../types';
+import { DogIndividualPriceChart } from './DogIndividualPriceChart';
 
 interface FindDogsScreenProps {
   dogs: Dog[];
@@ -10,6 +11,7 @@ interface FindDogsScreenProps {
   setCurrentScreen: (screen: Screen) => void;
   onShowToast: (msg: string) => void;
   initialSearchQuery?: string;
+  onOpenPostListing?: () => void;
 }
 
 export const FindDogsScreen: React.FC<FindDogsScreenProps> = ({
@@ -20,7 +22,8 @@ export const FindDogsScreen: React.FC<FindDogsScreenProps> = ({
   favoritedDogIds,
   setCurrentScreen,
   onShowToast,
-  initialSearchQuery = ''
+  initialSearchQuery = '',
+  onOpenPostListing
 }) => {
   const [categoryFilter, setCategoryFilter] = useState<'all' | 'puppy' | 'rescue'>('all');
   const [breedSearch, setBreedSearch] = useState('');
@@ -32,6 +35,7 @@ export const FindDogsScreen: React.FC<FindDogsScreenProps> = ({
   const [requireDNA, setRequireDNA] = useState<boolean>(true);
   const [sortBy, setSortBy] = useState<string>('featured');
   const [alertEmail, setAlertEmail] = useState('');
+  const [showPriceChart, setShowPriceChart] = useState<boolean>(true);
 
   const breedList = [
     { name: 'Golden Retriever', count: 42 },
@@ -53,6 +57,15 @@ export const FindDogsScreen: React.FC<FindDogsScreenProps> = ({
 
   const filteredDogs = useMemo(() => {
     return dogs.filter((d) => {
+      // Rejection safeguard: Exclude any listing rejected by the owner from the public shop
+      if (
+        d.approvalStatus === 'rejected' ||
+        d.photoApprovalStatus === 'rejected' ||
+        d.nameApprovalStatus === 'rejected'
+      ) {
+        return false;
+      }
+
       // Category
       if (categoryFilter === 'puppy' && d.category !== 'puppy') return false;
       if (categoryFilter === 'rescue' && !d.isRescue) return false;
@@ -351,18 +364,45 @@ export const FindDogsScreen: React.FC<FindDogsScreenProps> = ({
                 </p>
               </div>
 
-              <div className="flex items-center gap-2 text-xs">
-                <span className="text-[#887364]">Sort:</span>
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className="bg-[#f0f3ff] border border-[#dee8ff] rounded-xl px-3 py-1.5 font-bold text-[#111c2d] focus:outline-none focus:border-[#8d4b00] cursor-pointer"
+              <div className="flex flex-wrap items-center gap-2 text-xs">
+                {onOpenPostListing && (
+                  <button
+                    type="button"
+                    onClick={onOpenPostListing}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold bg-[#8d4b00] hover:bg-[#b15f00] text-white shadow-xs transition-all cursor-pointer"
+                  >
+                    <span className="material-symbols-outlined text-sm">photo_camera</span>
+                    <span>List Dog with Photo</span>
+                  </button>
+                )}
+
+                <button
+                  id="toggle-price-chart-btn"
+                  type="button"
+                  onClick={() => setShowPriceChart(!showPriceChart)}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold border transition-all cursor-pointer ${
+                    showPriceChart
+                      ? 'bg-[#ffdcc3] text-[#8d4b00] border-[#f3cbb0] shadow-xs'
+                      : 'bg-[#f0f3ff] text-[#485b7e] border-[#dee8ff] hover:bg-[#e4edff]'
+                  }`}
                 >
-                  <option value="featured">Featured Recommendations</option>
-                  <option value="distance">Nearest Distance</option>
-                  <option value="fee-low">Fee: Low to High</option>
-                  <option value="fee-high">Fee: High to Low</option>
-                </select>
+                  <span className="material-symbols-outlined text-sm">show_chart</span>
+                  <span>{showPriceChart ? 'Individual Charts: ON' : 'Individual Charts: OFF'}</span>
+                </button>
+
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[#887364]">Sort:</span>
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    className="bg-[#f0f3ff] border border-[#dee8ff] rounded-xl px-3 py-1.5 font-bold text-[#111c2d] focus:outline-none focus:border-[#8d4b00] cursor-pointer"
+                  >
+                    <option value="featured">Featured Recommendations</option>
+                    <option value="distance">Nearest Distance</option>
+                    <option value="fee-low">Fee: Low to High</option>
+                    <option value="fee-high">Fee: High to Low</option>
+                  </select>
+                </div>
               </div>
             </div>
 
@@ -465,6 +505,11 @@ export const FindDogsScreen: React.FC<FindDogsScreenProps> = ({
                             </span>
                           ))}
                         </div>
+
+                        {/* Individual Dog Price Line Chart */}
+                        {showPriceChart && (
+                          <DogIndividualPriceChart dog={dog} variant="card" />
+                        )}
 
                         {/* Breeder Info */}
                         <div className="mt-3 pt-3 border-t border-[#f0f3ff] flex items-center justify-between">

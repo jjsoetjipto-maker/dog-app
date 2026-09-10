@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { Dog, ApprovalStatus, UserProfile } from '../types';
+import { Dog, ApprovalStatus, UserProfile, GearProduct } from '../types';
+import { CameraCaptureModal } from './CameraCaptureModal';
 import {
   OWNER_DEFAULT_PASSCODE,
   OWNER_DEFAULT_EMAIL,
@@ -15,6 +16,8 @@ interface OwnerPortalScreenProps {
   onShowToast: (msg: string) => void;
   onSelectDogPreview?: (dog: Dog) => void;
   currentUser?: UserProfile;
+  gearProducts?: GearProduct[];
+  onUpdateGear?: (updatedGear: GearProduct[]) => void;
 }
 
 export const OwnerPortalScreen: React.FC<OwnerPortalScreenProps> = ({
@@ -23,7 +26,9 @@ export const OwnerPortalScreen: React.FC<OwnerPortalScreenProps> = ({
   onExitToMarketplace,
   onShowToast,
   onSelectDogPreview,
-  currentUser
+  currentUser,
+  gearProducts,
+  onUpdateGear
 }) => {
   // Authentication gate state
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
@@ -39,10 +44,10 @@ export const OwnerPortalScreen: React.FC<OwnerPortalScreenProps> = ({
   const [authError, setAuthError] = useState('');
 
   // Active tab in owner portal
-  const [activeTab, setActiveTab] = useState<'listings' | 'users' | 'new-submission' | 'guidelines'>('listings');
+  const [activeTab, setActiveTab] = useState<'listings' | 'gear' | 'users' | 'new-submission' | 'guidelines'>('listings');
 
   // Filter and search
-  const [statusFilter, setStatusFilter] = useState<'all' | 'pending-photo' | 'pending-name' | 'needs-attention' | 'approved'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending-photo' | 'pending-name' | 'needs-attention' | 'approved' | 'rejected'>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
   // Modals & In-line editing
@@ -54,6 +59,20 @@ export const OwnerPortalScreen: React.FC<OwnerPortalScreenProps> = ({
 
   // Zoom Image Inspector Modal
   const [zoomedImage, setZoomedImage] = useState<{ url: string; title: string; dog: Dog } | null>(null);
+
+  // Live Camera Capture state
+  const [isCameraCaptureOpen, setIsCameraCaptureOpen] = useState(false);
+  const [cameraCaptureTarget, setCameraCaptureTarget] = useState<'new-submission' | 'replace-photo'>('new-submission');
+
+  const handleCameraPhotoCaptured = (photoDataUrl: string) => {
+    if (cameraCaptureTarget === 'new-submission') {
+      setNewDogImage(photoDataUrl);
+      onShowToast('Live photo captured with camera for new dog submission!');
+    } else if (cameraCaptureTarget === 'replace-photo') {
+      setEditingPhotoUrl(photoDataUrl);
+      onShowToast('Live photo captured with camera for photo replacement!');
+    }
+  };
 
   // New Submission Form state
   const [newDogName, setNewDogName] = useState('');
@@ -141,9 +160,9 @@ export const OwnerPortalScreen: React.FC<OwnerPortalScreenProps> = ({
         const isPhotoRejected = (updates.photoApprovalStatus ?? updated.photoApprovalStatus) === 'rejected';
         const isNameRejected = (updates.nameApprovalStatus ?? updated.nameApprovalStatus) === 'rejected';
 
-        if (isPhotoRejected || isNameRejected) {
+        if (updates.approvalStatus === 'rejected' || isPhotoRejected || isNameRejected) {
           updated.approvalStatus = 'rejected';
-        } else if (isPhotoApproved && isNameApproved) {
+        } else if (updates.approvalStatus === 'approved' || (isPhotoApproved && isNameApproved)) {
           updated.approvalStatus = 'approved';
         } else {
           updated.approvalStatus = 'pending';
@@ -156,6 +175,76 @@ export const OwnerPortalScreen: React.FC<OwnerPortalScreenProps> = ({
 
     onUpdateDogs(nextDogs);
     saveManagedDogs(nextDogs);
+  };
+
+  // Whole listing rejection & restore actions (controls presence in public shop)
+  const handleRejectListing = (dog: Dog) => {
+    const defaultReason = prompt(
+      `Enter reason for REJECTING listing "${dog.name}" (it will be excluded from the shop):`,
+      'Failed health clearance or pedigree documentation standards'
+    );
+    if (defaultReason === null) return;
+    const note = defaultReason.trim() || 'Listing rejected by platform owner. Excluded from shop.';
+
+    updateDog(dog.id, {
+      approvalStatus: 'rejected',
+      photoApprovalStatus: 'rejected',
+      nameApprovalStatus: 'rejected',
+      photoNotes: note,
+      nameNotes: note
+    });
+    onShowToast(`Listing for "${dog.name}" REJECTED. Excluded from public shop.`);
+  };
+
+  const handleRestoreListing = (dog: Dog) => {
+    updateDog(dog.id, {
+      approvalStatus: 'approved',
+      photoApprovalStatus: 'approved',
+      nameApprovalStatus: 'approved',
+      photoNotes: 'Re-approved & restored by Owner. Clear for public shop.',
+      nameNotes: 'Re-approved & restored by Owner.'
+    });
+    onShowToast(`Listing for "${dog.name}" RE-APPROVED and live in public shop!`);
+  };
+
+  // Equipment & Gear actions
+  const handleRejectGear = (gearId: string, gearName: string) => {
+    const reason = prompt(
+      `Enter reason for REJECTING equipment "${gearName}" (it will be excluded from the shop):`,
+      'Failed veterinary safety or durability inspection'
+    );
+    if (reason === null) return;
+    const finalReason = reason.trim() || 'Equipment rejected by platform owner. Excluded from shop.';
+
+    if (onUpdateGear && gearProducts) {
+      const nextGear = gearProducts.map((g) =>
+        g.id === gearId
+          ? {
+              ...g,
+              approvalStatus: 'rejected' as ApprovalStatus,
+              rejectionNotes: finalReason
+            }
+          : g
+      );
+      onUpdateGear(nextGear);
+      onShowToast(`Equipment "${gearName}" REJECTED. Excluded from public shop.`);
+    }
+  };
+
+  const handleApproveGear = (gearId: string, gearName: string) => {
+    if (onUpdateGear && gearProducts) {
+      const nextGear = gearProducts.map((g) =>
+        g.id === gearId
+          ? {
+              ...g,
+              approvalStatus: 'approved' as ApprovalStatus,
+              rejectionNotes: undefined
+            }
+          : g
+      );
+      onUpdateGear(nextGear);
+      onShowToast(`Equipment "${gearName}" APPROVED! Live in public shop.`);
+    }
   };
 
   // Photo actions
@@ -179,9 +268,10 @@ export const OwnerPortalScreen: React.FC<OwnerPortalScreenProps> = ({
   const handleRejectPhoto = (dog: Dog) => {
     updateDog(dog.id, {
       photoApprovalStatus: 'rejected',
-      photoNotes: 'Picture rejected by Owner. Violates visual quality guidelines.'
+      approvalStatus: 'rejected',
+      photoNotes: 'Picture rejected by Owner. Violates visual quality guidelines (excluded from shop).'
     });
-    onShowToast(`Picture rejected for "${dog.name}".`);
+    onShowToast(`Picture rejected for "${dog.name}". Listing hidden from shop.`);
   };
 
   // Name actions
@@ -205,9 +295,10 @@ export const OwnerPortalScreen: React.FC<OwnerPortalScreenProps> = ({
   const handleRejectName = (dog: Dog) => {
     updateDog(dog.id, {
       nameApprovalStatus: 'rejected',
-      nameNotes: 'Name rejected by Owner. Inappropriate or misleading.'
+      approvalStatus: 'rejected',
+      nameNotes: 'Name rejected by Owner. Inappropriate or misleading (excluded from shop).'
     });
-    onShowToast(`Name rejected for "${dog.name}".`);
+    onShowToast(`Name rejected for "${dog.name}". Listing hidden from shop.`);
   };
 
   const handleSaveEditedName = (dogId: string) => {
@@ -376,26 +467,44 @@ export const OwnerPortalScreen: React.FC<OwnerPortalScreenProps> = ({
   // Metrics computation
   const metrics = useMemo(() => {
     const total = dogs.length;
-    const pendingPhotos = dogs.filter((d) => d.photoApprovalStatus === 'pending').length;
-    const pendingNames = dogs.filter((d) => d.nameApprovalStatus === 'pending').length;
+    const isDogRejected = (d: Dog) =>
+      d.approvalStatus === 'rejected' ||
+      d.photoApprovalStatus === 'rejected' ||
+      d.nameApprovalStatus === 'rejected';
+
+    const rejected = dogs.filter(isDogRejected).length;
+    const pendingPhotos = dogs.filter((d) => !isDogRejected(d) && d.photoApprovalStatus === 'pending').length;
+    const pendingNames = dogs.filter((d) => !isDogRejected(d) && d.nameApprovalStatus === 'pending').length;
     const flagged = dogs.filter(
-      (d) => d.photoApprovalStatus === 'flagged' || d.nameApprovalStatus === 'flagged'
+      (d) => !isDogRejected(d) && (d.photoApprovalStatus === 'flagged' || d.nameApprovalStatus === 'flagged')
     ).length;
     const fullyApproved = dogs.filter(
-      (d) => d.photoApprovalStatus === 'approved' && d.nameApprovalStatus === 'approved'
+      (d) => !isDogRejected(d) && d.photoApprovalStatus === 'approved' && d.nameApprovalStatus === 'approved'
     ).length;
 
-    return { total, pendingPhotos, pendingNames, flagged, fullyApproved };
+    return { total, pendingPhotos, pendingNames, flagged, rejected, fullyApproved };
   }, [dogs]);
 
   // Filtered Dogs
   const filteredDogs = useMemo(() => {
     return dogs.filter((dog) => {
+      const isRejected =
+        dog.approvalStatus === 'rejected' ||
+        dog.photoApprovalStatus === 'rejected' ||
+        dog.nameApprovalStatus === 'rejected';
+
       // Status filter
-      if (statusFilter === 'pending-photo' && dog.photoApprovalStatus !== 'pending') return false;
-      if (statusFilter === 'pending-name' && dog.nameApprovalStatus !== 'pending') return false;
-      if (statusFilter === 'needs-attention' && dog.photoApprovalStatus !== 'flagged' && dog.nameApprovalStatus !== 'flagged') return false;
-      if (statusFilter === 'approved' && (dog.photoApprovalStatus !== 'approved' || dog.nameApprovalStatus !== 'approved')) return false;
+      if (statusFilter === 'rejected') {
+        if (!isRejected) return false;
+      } else if (statusFilter === 'pending-photo') {
+        if (isRejected || dog.photoApprovalStatus !== 'pending') return false;
+      } else if (statusFilter === 'pending-name') {
+        if (isRejected || dog.nameApprovalStatus !== 'pending') return false;
+      } else if (statusFilter === 'needs-attention') {
+        if (isRejected || (dog.photoApprovalStatus !== 'flagged' && dog.nameApprovalStatus !== 'flagged')) return false;
+      } else if (statusFilter === 'approved') {
+        if (isRejected || dog.photoApprovalStatus !== 'approved' || dog.nameApprovalStatus !== 'approved') return false;
+      }
 
       // Search query
       if (searchQuery.trim()) {
@@ -591,6 +700,18 @@ export const OwnerPortalScreen: React.FC<OwnerPortalScreenProps> = ({
             </button>
 
             <button
+              onClick={() => setActiveTab('gear')}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 shrink-0 ${
+                activeTab === 'gear'
+                  ? 'bg-[#d97706] text-white shadow-xs'
+                  : 'text-[#93a6c8] hover:text-white hover:bg-[#172338]'
+              }`}
+            >
+              <span className="material-symbols-outlined text-sm">shopping_bag</span>
+              <span>Equipment Moderation ({gearProducts.length})</span>
+            </button>
+
+            <button
               onClick={() => setActiveTab('new-submission')}
               className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 shrink-0 ${
                 activeTab === 'new-submission'
@@ -647,7 +768,7 @@ export const OwnerPortalScreen: React.FC<OwnerPortalScreenProps> = ({
           <div className="space-y-6">
             
             {/* KPI Metric Cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
               <div 
                 onClick={() => setStatusFilter('all')}
                 className={`p-4 rounded-2xl border transition-all cursor-pointer ${
@@ -700,8 +821,8 @@ export const OwnerPortalScreen: React.FC<OwnerPortalScreenProps> = ({
                 onClick={() => setStatusFilter('needs-attention')}
                 className={`p-4 rounded-2xl border transition-all cursor-pointer ${
                   statusFilter === 'needs-attention'
-                    ? 'bg-[#2f1816] border-red-500 shadow-lg shadow-red-500/10'
-                    : 'bg-[#111928] border-[#22314a] hover:border-red-700/50'
+                    ? 'bg-[#2f1816] border-rose-500 shadow-lg shadow-rose-500/10'
+                    : 'bg-[#111928] border-[#22314a] hover:border-rose-700/50'
                 }`}
               >
                 <div className="flex items-center justify-between text-rose-300 text-xs">
@@ -727,6 +848,50 @@ export const OwnerPortalScreen: React.FC<OwnerPortalScreenProps> = ({
                 <div className="text-2xl font-bold text-emerald-400 mt-2">{metrics.fullyApproved}</div>
                 <p className="text-[10px] text-emerald-300/70 mt-1">Live on Marketplace</p>
               </div>
+
+              <div 
+                onClick={() => setStatusFilter('rejected')}
+                className={`p-4 rounded-2xl border transition-all cursor-pointer ${
+                  statusFilter === 'rejected'
+                    ? 'bg-[#351416] border-red-500 shadow-lg shadow-red-500/20'
+                    : 'bg-[#111928] border-[#22314a] hover:border-red-700/50'
+                }`}
+              >
+                <div className="flex items-center justify-between text-red-300 text-xs">
+                  <span>Rejected / Hidden</span>
+                  <span className="material-symbols-outlined text-base">block</span>
+                </div>
+                <div className="text-2xl font-bold text-red-400 mt-2">{metrics.rejected}</div>
+                <p className="text-[10px] text-red-300/70 mt-1">Excluded from Shop</p>
+              </div>
+            </div>
+
+            {/* Shop Exclusion Policy Banner */}
+            <div className="bg-[#181116] border border-red-900/60 rounded-2xl p-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-red-200 shadow-xs">
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-lg bg-red-950/80 border border-red-800 flex items-center justify-center text-red-400 shrink-0">
+                  <span className="material-symbols-outlined text-base">shield</span>
+                </div>
+                <div>
+                  <p className="font-bold text-red-200">
+                    Shop Visibility Rule: <span className="font-normal text-red-300/90">If the owner rejects a dog listing (or its picture/name), it is immediately excluded and hidden from the public marketplace, search catalog, and adopter favorites.</span>
+                  </p>
+                </div>
+              </div>
+              {metrics.rejected > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setStatusFilter(statusFilter === 'rejected' ? 'all' : 'rejected')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 transition-colors cursor-pointer flex items-center gap-1.5 ${
+                    statusFilter === 'rejected'
+                      ? 'bg-red-700 text-white shadow-xs'
+                      : 'bg-red-950/70 hover:bg-red-900 text-red-200 border border-red-800/60'
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-sm">block</span>
+                  <span>{statusFilter === 'rejected' ? 'Showing All Listings' : `View ${metrics.rejected} Rejected (Hidden)`}</span>
+                </button>
+              )}
             </div>
 
             {/* Filter Bar & Batch Actions */}
@@ -802,20 +967,45 @@ export const OwnerPortalScreen: React.FC<OwnerPortalScreenProps> = ({
                 filteredDogs.map((dog) => {
                   const isPhotoApproved = dog.photoApprovalStatus === 'approved';
                   const isNameApproved = dog.nameApprovalStatus === 'approved';
-                  const isFullyApproved = isPhotoApproved && isNameApproved;
+                  const isPhotoRejected = dog.photoApprovalStatus === 'rejected';
+                  const isNameRejected = dog.nameApprovalStatus === 'rejected';
+                  const isDogRejected = dog.approvalStatus === 'rejected' || isPhotoRejected || isNameRejected;
+                  const isFullyApproved = isPhotoApproved && isNameApproved && !isDogRejected;
                   const isEditingThisName = editingDogId === dog.id;
 
                   return (
                     <div
                       key={dog.id}
                       className={`bg-[#111928] rounded-3xl border transition-all overflow-hidden ${
-                        isFullyApproved
+                        isDogRejected
+                          ? 'border-red-600/70 bg-[#170e12] shadow-xl shadow-red-950/40'
+                          : isFullyApproved
                           ? 'border-[#1e3427] hover:border-[#2f553f]'
                           : dog.photoApprovalStatus === 'flagged' || dog.nameApprovalStatus === 'flagged'
                           ? 'border-red-900/50 shadow-md shadow-red-950/20'
                           : 'border-[#2d3f5b] shadow-md'
                       }`}
                     >
+                      {/* Prominent Rejection Banner across Card Header */}
+                      {isDogRejected && (
+                        <div className="bg-red-950/90 border-b border-red-800/70 px-5 py-2.5 flex flex-wrap items-center justify-between gap-3 text-red-200">
+                          <div className="flex items-center gap-2 text-xs font-bold">
+                            <span className="material-symbols-outlined text-red-400 text-base">block</span>
+                            <span>REJECTED BY OWNER • EXCLUDED FROM PUBLIC SHOP</span>
+                            <span className="text-[11px] text-red-300/80 font-normal hidden sm:inline">
+                              (Adopters cannot search, view, or apply for this dog in the shop)
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleRestoreListing(dog)}
+                            className="px-3 py-1 bg-emerald-700 hover:bg-emerald-600 text-white rounded-lg text-xs font-bold transition-colors cursor-pointer flex items-center gap-1 shadow-xs"
+                          >
+                            <span className="material-symbols-outlined text-sm">restore</span>
+                            <span>Re-Approve & Restore to Shop</span>
+                          </button>
+                        </div>
+                      )}
                       <div className="p-5 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                         
                         {/* Column 1: Picture Inspection & Moderation (Cols 1-4) */}
@@ -908,7 +1098,7 @@ export const OwnerPortalScreen: React.FC<OwnerPortalScreenProps> = ({
 
                             <button
                               onClick={() => handleFlagPhoto(dog)}
-                              className="py-1.5 px-2.5 bg-[#251e16] hover:bg-[#3d2f21] border border-amber-700/60 text-amber-300 rounded-xl text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer"
+                              className="py-1.5 px-2 bg-[#251e16] hover:bg-[#3d2f21] border border-amber-700/60 text-amber-300 rounded-xl text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer"
                               title="Flag picture for revision"
                             >
                               <span className="material-symbols-outlined text-sm">flag</span>
@@ -916,8 +1106,17 @@ export const OwnerPortalScreen: React.FC<OwnerPortalScreenProps> = ({
                             </button>
 
                             <button
+                              onClick={() => handleRejectPhoto(dog)}
+                              className="py-1.5 px-2 bg-red-950/60 hover:bg-red-900/80 border border-red-700/50 text-red-300 rounded-xl text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer"
+                              title="Reject photo (excludes listing from public shop)"
+                            >
+                              <span className="material-symbols-outlined text-sm">cancel</span>
+                              <span>Reject Photo</span>
+                            </button>
+
+                            <button
                               onClick={() => handleOpenPhotoReplace(dog)}
-                              className="py-1.5 px-2.5 bg-[#172338] hover:bg-[#233552] border border-[#2f4365] text-[#cbd7ef] rounded-xl text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer"
+                              className="py-1.5 px-2 bg-[#172338] hover:bg-[#233552] border border-[#2f4365] text-[#cbd7ef] rounded-xl text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer"
                               title="Replace or upload a new photo"
                             >
                               <span className="material-symbols-outlined text-sm">edit</span>
@@ -1073,14 +1272,19 @@ export const OwnerPortalScreen: React.FC<OwnerPortalScreenProps> = ({
                         <div className="lg:col-span-3 bg-[#0c1320] p-4 rounded-2xl border border-[#1e2c43] space-y-3.5 flex flex-col justify-between h-full">
                           <div className="space-y-2">
                             <div className="flex items-center justify-between text-xs">
-                              <span className="text-[#6f83a7] font-semibold">Catalog Status</span>
-                              {isFullyApproved ? (
-                                <span className="text-[10px] font-bold text-[#82f5c1] bg-[#006c4a]/30 border border-[#006c4a] px-2 py-0.5 rounded-full flex items-center gap-1">
+                              <span className="text-[#6f83a7] font-semibold">Shop Status</span>
+                              {isDogRejected ? (
+                                <span className="text-[10px] font-bold text-red-300 bg-red-950/80 border border-red-700/80 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                                  <span className="material-symbols-outlined text-xs">block</span>
+                                  <span>REJECTED (NOT IN SHOP)</span>
+                                </span>
+                              ) : isFullyApproved ? (
+                                <span className="text-[10px] font-bold text-[#82f5c1] bg-[#006c4a]/30 border border-[#006c4a] px-2.5 py-0.5 rounded-full flex items-center gap-1">
                                   <span className="material-symbols-outlined text-xs">public</span>
                                   <span>LIVE ON MARKETPLACE</span>
                                 </span>
                               ) : (
-                                <span className="text-[10px] font-bold text-amber-400 bg-amber-950/40 border border-amber-700/50 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                <span className="text-[10px] font-bold text-amber-400 bg-amber-950/40 border border-amber-700/50 px-2.5 py-0.5 rounded-full flex items-center gap-1">
                                   <span className="material-symbols-outlined text-xs">lock_clock</span>
                                   <span>APPROVAL PENDING</span>
                                 </span>
@@ -1090,18 +1294,24 @@ export const OwnerPortalScreen: React.FC<OwnerPortalScreenProps> = ({
                             <div className="text-[11px] text-[#93a6c8] space-y-1 bg-[#0a0f18] p-2.5 rounded-xl border border-[#1c293d]">
                               <div className="flex items-center justify-between">
                                 <span>Picture:</span>
-                                <span className={isPhotoApproved ? 'text-emerald-400 font-bold' : 'text-amber-400 font-bold'}>
-                                  {isPhotoApproved ? '✓ Verified' : 'Pending'}
+                                <span className={isPhotoApproved ? 'text-emerald-400 font-bold' : isPhotoRejected ? 'text-red-400 font-bold' : 'text-amber-400 font-bold'}>
+                                  {isPhotoApproved ? '✓ Verified' : isPhotoRejected ? '✗ Rejected' : 'Pending'}
                                 </span>
                               </div>
                               <div className="flex items-center justify-between">
                                 <span>Name:</span>
-                                <span className={isNameApproved ? 'text-emerald-400 font-bold' : 'text-amber-400 font-bold'}>
-                                  {isNameApproved ? '✓ Verified' : 'Pending'}
+                                <span className={isNameApproved ? 'text-emerald-400 font-bold' : isNameRejected ? 'text-red-400 font-bold' : 'text-amber-400 font-bold'}>
+                                  {isNameApproved ? '✓ Verified' : isNameRejected ? '✗ Rejected' : 'Pending'}
+                                </span>
+                              </div>
+                              <div className="flex items-center justify-between pt-1 border-t border-[#1c293d] text-[10px]">
+                                <span>Shop Visibility:</span>
+                                <span className={isDogRejected ? 'text-red-400 font-bold' : 'text-emerald-400 font-bold'}>
+                                  {isDogRejected ? 'Hidden from Shop' : 'Available in Shop'}
                                 </span>
                               </div>
                               {dog.submittedAt && (
-                                <div className="flex items-center justify-between text-[10px] text-[#5c7094] pt-1 border-t border-[#1c293d]">
+                                <div className="flex items-center justify-between text-[10px] text-[#5c7094]">
                                   <span>Submitted:</span>
                                   <span>{dog.submittedAt}</span>
                                 </div>
@@ -1110,18 +1320,41 @@ export const OwnerPortalScreen: React.FC<OwnerPortalScreenProps> = ({
                           </div>
 
                           <div className="space-y-2 pt-2">
-                            <button
-                              type="button"
-                              onClick={() => handleApproveBoth(dog)}
-                              className={`w-full py-2.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                                isFullyApproved
-                                  ? 'bg-[#1b2b22] text-[#82f5c1] border border-emerald-600/50 hover:bg-[#23382c]'
-                                  : 'bg-gradient-to-r from-[#d97706] to-[#b45309] hover:from-[#b45309] hover:to-[#92400e] text-white shadow-lg shadow-[#d97706]/20'
-                              }`}
-                            >
-                              <span className="material-symbols-outlined text-base">verified</span>
-                              <span>{isFullyApproved ? 'Re-Approve Dossier' : 'Approve Both Picture & Name'}</span>
-                            </button>
+                            {isDogRejected ? (
+                              <button
+                                type="button"
+                                onClick={() => handleRestoreListing(dog)}
+                                className="w-full py-2.5 px-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-md shadow-emerald-900/30"
+                              >
+                                <span className="material-symbols-outlined text-base">restore</span>
+                                <span>Restore to Public Shop</span>
+                              </button>
+                            ) : (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => handleApproveBoth(dog)}
+                                  className={`w-full py-2.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                                    isFullyApproved
+                                      ? 'bg-[#1b2b22] text-[#82f5c1] border border-emerald-600/50 hover:bg-[#23382c]'
+                                      : 'bg-gradient-to-r from-[#d97706] to-[#b45309] hover:from-[#b45309] hover:to-[#92400e] text-white shadow-lg shadow-[#d97706]/20'
+                                  }`}
+                                >
+                                  <span className="material-symbols-outlined text-base">verified</span>
+                                  <span>{isFullyApproved ? 'Re-Approve Dossier' : 'Approve Both Picture & Name'}</span>
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => handleRejectListing(dog)}
+                                  className="w-full py-2 px-3 bg-red-950/60 hover:bg-red-900/80 text-red-200 border border-red-700/60 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+                                  title="Reject entire listing and hide immediately from shop"
+                                >
+                                  <span className="material-symbols-outlined text-sm">block</span>
+                                  <span>Reject & Hide from Shop</span>
+                                </button>
+                              </>
+                            )}
 
                             {onSelectDogPreview && (
                               <button
@@ -1144,6 +1377,163 @@ export const OwnerPortalScreen: React.FC<OwnerPortalScreenProps> = ({
               )}
             </div>
 
+          </div>
+        )}
+
+        {/* Tab: Equipment Moderation */}
+        {activeTab === 'gear' && (
+          <div className="space-y-6">
+            {/* Header & Policy Summary */}
+            <div className="bg-[#111928] rounded-3xl border border-[#22314a] p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div>
+                <span className="text-[10px] font-bold text-[#82f5c1] uppercase tracking-wider bg-[#006c4a]/30 border border-[#006c4a] px-2.5 py-1 rounded-full">
+                  Equipment Safety & Shop Visibility Control
+                </span>
+                <h2 className="font-['Epilogue'] font-bold text-xl text-white mt-2">
+                  Equipment & Gear Catalog Moderation
+                </h2>
+                <p className="text-xs text-[#93a6c8] mt-1 max-w-2xl">
+                  Inspect equipment listings. If the platform owner rejects an item, it is immediately hidden and excluded from the public gear shop, search results, and adopter carts.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3 shrink-0">
+                <div className="px-4 py-2 bg-[#0c1320] border border-[#1e2c43] rounded-2xl text-center">
+                  <span className="text-[10px] text-[#6f83a7] block font-semibold">Total Items</span>
+                  <span className="text-lg font-bold text-white">{gearProducts.length}</span>
+                </div>
+                <div className="px-4 py-2 bg-[#0f281e] border border-emerald-700/60 rounded-2xl text-center">
+                  <span className="text-[10px] text-emerald-300 block font-semibold">Live in Shop</span>
+                  <span className="text-lg font-bold text-emerald-400">
+                    {gearProducts.filter((g) => g.approvalStatus !== 'rejected').length}
+                  </span>
+                </div>
+                <div className="px-4 py-2 bg-[#351416] border border-red-700/60 rounded-2xl text-center">
+                  <span className="text-[10px] text-red-300 block font-semibold">Rejected (Hidden)</span>
+                  <span className="text-lg font-bold text-red-400">
+                    {gearProducts.filter((g) => g.approvalStatus === 'rejected').length}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Gear Items Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {gearProducts.map((item) => {
+                const isRejected = item.approvalStatus === 'rejected';
+
+                return (
+                  <div
+                    key={item.id}
+                    className={`rounded-3xl border transition-all overflow-hidden flex flex-col justify-between ${
+                      isRejected
+                        ? 'bg-[#180e12] border-red-600/70 shadow-lg shadow-red-950/40'
+                        : 'bg-[#111928] border-[#22314a] hover:border-[#354c70]'
+                    }`}
+                  >
+                    {/* Rejection Header Banner */}
+                    {isRejected && (
+                      <div className="bg-red-950/90 border-b border-red-800/70 px-4 py-2 flex items-center justify-between text-xs text-red-200">
+                        <span className="font-bold flex items-center gap-1 text-[11px]">
+                          <span className="material-symbols-outlined text-sm text-red-400">block</span>
+                          <span>REJECTED • EXCLUDED FROM SHOP</span>
+                        </span>
+                        <span className="text-[10px] text-red-300/80">Hidden</span>
+                      </div>
+                    )}
+
+                    <div>
+                      {/* Image Preview */}
+                      <div className="relative aspect-4/3 bg-[#0a0f18] overflow-hidden border-b border-[#1e2c43]">
+                        <img
+                          src={item.image}
+                          alt={item.name}
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute top-3 left-3 flex flex-wrap gap-1">
+                          <span className="text-[10px] font-bold bg-black/70 backdrop-blur-md text-white px-2 py-0.5 rounded-md">
+                            {item.category}
+                          </span>
+                        </div>
+                        <div className="absolute top-3 right-3">
+                          {isRejected ? (
+                            <span className="text-[10px] font-bold bg-red-600 text-white px-2.5 py-1 rounded-full flex items-center gap-1 shadow-md">
+                              <span className="material-symbols-outlined text-xs">block</span>
+                              <span>Excluded</span>
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-bold bg-emerald-600 text-white px-2.5 py-1 rounded-full flex items-center gap-1 shadow-md">
+                              <span className="material-symbols-outlined text-xs">verified</span>
+                              <span>In Shop</span>
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Content */}
+                      <div className="p-5 space-y-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <span className="text-[10px] uppercase font-bold text-[#6f83a7] tracking-wider">
+                              {item.brand}
+                            </span>
+                            <h3 className="font-bold text-sm text-white mt-0.5">{item.name}</h3>
+                          </div>
+                          <span className="font-['Epilogue'] font-bold text-base text-[#ffdcc3] shrink-0">
+                            ${item.price}
+                          </span>
+                        </div>
+
+                        <p className="text-xs text-[#93a6c8] line-clamp-2 leading-relaxed">
+                          {item.description}
+                        </p>
+
+                        {/* Rejection Notes */}
+                        {isRejected && item.rejectionNotes && (
+                          <div className="bg-red-950/60 border border-red-800/60 rounded-xl p-2.5 text-[11px] text-red-200">
+                            <span className="font-bold block text-red-400">Rejection Reason:</span>
+                            <span>{item.rejectionNotes}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Actions Footer */}
+                    <div className="p-4 bg-[#0c1320] border-t border-[#1e2c43] flex items-center gap-2">
+                      {isRejected ? (
+                        <button
+                          type="button"
+                          onClick={() => handleApproveGear(item.id, item.name)}
+                          className="flex-1 py-2 px-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-xs"
+                        >
+                          <span className="material-symbols-outlined text-sm">restore</span>
+                          <span>Restore to Public Shop</span>
+                        </button>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => handleApproveGear(item.id, item.name)}
+                            className="flex-1 py-2 px-3 bg-[#1e2d44] hover:bg-[#283b58] text-[#82f5c1] border border-[#3b4e6d] rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                          >
+                            <span className="material-symbols-outlined text-sm">done</span>
+                            <span>Approved</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleRejectGear(item.id, item.name)}
+                            className="flex-1 py-2 px-3 bg-red-950/60 hover:bg-red-900/80 text-red-200 border border-red-700/60 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center justify-center gap-1.5 shadow-xs"
+                          >
+                            <span className="material-symbols-outlined text-sm">block</span>
+                            <span>Reject & Hide</span>
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
 
@@ -1238,16 +1628,39 @@ export const OwnerPortalScreen: React.FC<OwnerPortalScreenProps> = ({
 
               {/* Photo selection */}
               <div className="space-y-2">
-                <label className="block text-xs font-semibold text-[#cbd7ef]">
-                  Select or Enter Companion Picture URL
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-semibold text-[#cbd7ef]">
+                    Companion Picture (Live Camera or URL)
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCameraCaptureTarget('new-submission');
+                      setIsCameraCaptureOpen(true);
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#d97706] hover:bg-[#b45309] text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-md shadow-[#d97706]/20"
+                  >
+                    <span className="material-symbols-outlined text-sm">photo_camera</span>
+                    <span>Take Photo with Camera</span>
+                  </button>
+                </div>
                 <input
                   type="url"
                   value={newDogImage}
                   onChange={(e) => setNewDogImage(e.target.value)}
-                  placeholder="https://..."
+                  placeholder="https://... or capture with camera"
                   className="w-full px-3.5 py-2.5 bg-[#0a0f18] border border-[#2b3d5a] focus:border-[#d97706] rounded-xl text-xs text-white focus:outline-none font-mono"
                 />
+
+                {newDogImage && (
+                  <div className="flex items-center gap-3 p-2.5 bg-[#172338] rounded-xl border border-[#2b3d5a]">
+                    <img src={newDogImage} alt="Preview" className="w-16 h-12 object-cover rounded-lg border border-[#3b5278]" />
+                    <div className="min-w-0 flex-1">
+                      <span className="text-[11px] text-white font-bold block">Current Picture Attached</span>
+                      <span className="text-[10px] text-emerald-400 font-medium">Ready for review queue submission</span>
+                    </div>
+                  </div>
+                )}
 
                 <p className="text-[11px] text-[#93a6c8]">Or pick from verified studio photos:</p>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -1429,14 +1842,27 @@ export const OwnerPortalScreen: React.FC<OwnerPortalScreenProps> = ({
 
             <div className="space-y-3 text-xs">
               <div>
-                <label className="block text-[#cbd7ef] font-semibold mb-1">
-                  Custom Picture URL
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-[#cbd7ef] font-semibold">
+                    Custom Picture URL or Camera Capture
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCameraCaptureTarget('replace-photo');
+                      setIsCameraCaptureOpen(true);
+                    }}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 bg-[#d97706] hover:bg-[#b45309] text-white rounded-lg text-xs font-bold transition-all cursor-pointer shadow-xs"
+                  >
+                    <span className="material-symbols-outlined text-sm">photo_camera</span>
+                    <span>Take Photo with Camera</span>
+                  </button>
+                </div>
                 <input
                   type="url"
                   value={editingPhotoUrl}
                   onChange={(e) => setEditingPhotoUrl(e.target.value)}
-                  placeholder="https://images.unsplash.com/..."
+                  placeholder="https://... or capture with camera"
                   className="w-full px-3.5 py-2.5 bg-[#0a0f18] border border-[#2b3d5a] focus:border-[#d97706] rounded-xl text-xs text-white font-mono focus:outline-none"
                 />
               </div>
@@ -1567,6 +1993,16 @@ export const OwnerPortalScreen: React.FC<OwnerPortalScreenProps> = ({
           </div>
         </div>
       )}
+
+      {/* Live Camera Viewfinder Modal */}
+      <CameraCaptureModal
+        isOpen={isCameraCaptureOpen}
+        onClose={() => setIsCameraCaptureOpen(false)}
+        onCapture={handleCameraPhotoCaptured}
+        subjectType="dog"
+        title="Capture Companion Dog Photo"
+        subtitle="Live camera capture for PawPalace platform review and listing approval"
+      />
 
     </div>
   );
