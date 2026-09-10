@@ -194,3 +194,23 @@
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Sliding ticker animation for dog raising tips moving left */
+@keyframes slideTrackLeft {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-slide-left {
+  display: flex;
+  width: max-content;
+  animation: slideTrackLeft 38s linear infinite;
+}
+
+.animate-slide-left:hover {
+  animation-play-state: paused;
+}

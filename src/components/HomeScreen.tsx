@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Dog, GearProduct, Screen } from '../types';
 import { DogIndividualPriceChart } from './DogIndividualPriceChart';
 import { DogRaisingTipsCard } from './DogRaisingTipsCard';
+import { TopDogRaisingTipsTicker } from './TopDogRaisingTipsTicker';
 
 interface HomeScreenProps {
   dogs: Dog[];
@@ -35,6 +36,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   const [selectedLocation, setSelectedLocation] = useState('any');
   const [selectedAge, setSelectedAge] = useState('all');
 
+  const topDog = dogs.find((d) => d.id === 'archie') || dogs[0];
   const featuredDogs = dogs.slice(0, 4);
   const featuredGear = gear.slice(0, 4);
 
@@ -50,6 +52,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   return (
     <div className="space-y-16 pb-16">
       
+      {/* Top Dog Raising Tips Banner: A Rectangle Sliding to the Left */}
+      <TopDogRaisingTipsTicker onShowToast={onShowToast} />
+
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-gradient-to-b from-[#e7eeff]/60 via-[#f0f3ff]/40 to-transparent pt-12 pb-16 px-4 sm:px-6 lg:px-8 border-b border-[#dee8ff]">
         {/* Subtle background glow */}
@@ -206,69 +211,66 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
 
             </div>
 
-            {/* Right Column: Tips on How to Raise Dogs (Expert Guide Showcase) */}
-            <div className="lg:col-span-5 relative flex flex-col min-h-[460px]">
-              <DogRaisingTipsCard onShowToast={onShowToast} />
+            {/* Right Column: Top Dog Visual Showcase */}
+            <div className="lg:col-span-5 relative">
+              <div className="relative rounded-3xl overflow-hidden shadow-2xl border-4 border-white aspect-[4/5] group">
+                <img
+                  src={topDog.image}
+                  alt={topDog.name}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                  referrerPolicy="no-referrer"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+
+                {/* Floating Certification Badge */}
+                <div className="absolute top-4 left-4 bg-white/95 backdrop-blur-md rounded-2xl p-3 shadow-lg border border-[#e7eeff] max-w-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#006c4a] animate-pulse"></span>
+                    <span className="font-bold text-xs text-[#111c2d]">100% Home Raised Litter</span>
+                  </div>
+                  <p className="text-[11px] text-[#554336] mt-0.5">
+                    OFA certified hips, elbows, eyes & cardiac.
+                  </p>
+                </div>
+
+                {/* Top Dog Badge */}
+                <div className="absolute top-4 right-4 bg-[#8d4b00] text-[#ffdcc3] text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full shadow-md flex items-center gap-1 border border-[#ffdcc3]/30">
+                  <span className="material-symbols-outlined text-xs">workspace_premium</span>
+                  <span>Top Dog</span>
+                </div>
+
+                {/* Bottom Highlight Card */}
+                <div className="absolute bottom-4 left-4 right-4 bg-white/95 backdrop-blur-md rounded-2xl p-4 shadow-xl border border-[#e7eeff]">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-bold text-base text-[#111c2d]">{topDog.name}</h3>
+                        <span className="bg-[#ffdcc3] text-[#8d4b00] text-[10px] font-bold px-2 py-0.5 rounded-full">
+                          {topDog.breed}
+                        </span>
+                        <span className="bg-[#006c4a]/15 text-[#006c4a] text-[10px] font-bold px-1.5 py-0.5 rounded">
+                          Featured
+                        </span>
+                      </div>
+                      <p className="text-xs text-[#554336] mt-0.5">
+                        {topDog.breederName} • {topDog.location}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        onSelectDog(topDog);
+                        setCurrentScreen('dog-detail');
+                      }}
+                      className="bg-[#8d4b00] text-white px-3.5 py-2 rounded-xl text-xs font-bold hover:bg-[#b15f00] transition-colors cursor-pointer flex items-center gap-1 shadow-sm"
+                    >
+                      <span>Meet {topDog.name}</span>
+                      <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
 
-          </div>
-        </div>
-      </section>
-
-      {/* 4 Pillars of Ethical Care */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center max-w-3xl mx-auto mb-10">
-          <div className="inline-flex items-center gap-1.5 text-xs font-bold text-[#006c4a] uppercase tracking-wider mb-2">
-            <span className="material-symbols-outlined text-base">gavel</span>
-            <span>A New Standard For Companion Placement</span>
-          </div>
-          <h2 className="font-['Epilogue'] font-bold text-2xl sm:text-3xl text-[#111c2d]">
-            The 4 Pillars of the PawPalace Guarantee
-          </h2>
-          <p className="text-xs sm:text-sm text-[#554336] mt-2">
-            We ban unlicensed puppy mills, broker networks, and untested pedigrees. Every transaction is held in safe escrow.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="p-6 rounded-3xl bg-white border border-[#dee8ff] hover:border-[#8d4b00] transition-all shadow-xs">
-            <div className="w-12 h-12 rounded-2xl bg-[#ffdcc3] text-[#8d4b00] flex items-center justify-center mb-4">
-              <span className="material-symbols-outlined text-2xl">verified_user</span>
-            </div>
-            <h3 className="font-bold text-sm text-[#111c2d] mb-1.5">Zero-Tolerance Mills</h3>
-            <p className="text-xs text-[#554336] leading-relaxed">
-              Every home breeder undergoes exhaustive background verification, property audits, and capacity limits.
-            </p>
-          </div>
-
-          <div className="p-6 rounded-3xl bg-white border border-[#dee8ff] hover:border-[#006c4a] transition-all shadow-xs">
-            <div className="w-12 h-12 rounded-2xl bg-[#82f5c1] text-[#006c4a] flex items-center justify-center mb-4">
-              <span className="material-symbols-outlined text-2xl">biotech</span>
-            </div>
-            <h3 className="font-bold text-sm text-[#111c2d] mb-1.5">Compulsory DNA Screening</h3>
-            <p className="text-xs text-[#554336] leading-relaxed">
-              Parent bloodlines require verified OFA joint scoring and 250+ genetic disorder negative panels before listing.
-            </p>
-          </div>
-
-          <div className="p-6 rounded-3xl bg-white border border-[#dee8ff] hover:border-[#a33900] transition-all shadow-xs">
-            <div className="w-12 h-12 rounded-2xl bg-[#ffdbce] text-[#a33900] flex items-center justify-center mb-4">
-              <span className="material-symbols-outlined text-2xl">security</span>
-            </div>
-            <h3 className="font-bold text-sm text-[#111c2d] mb-1.5">10-Year Genetic Warranty</h3>
-            <p className="text-xs text-[#554336] leading-relaxed">
-              Industry-leading legal coverage ensuring your companion is protected throughout their adult and senior years.
-            </p>
-          </div>
-
-          <div className="p-6 rounded-3xl bg-white border border-[#dee8ff] hover:border-[#006c4a] transition-all shadow-xs">
-            <div className="w-12 h-12 rounded-2xl bg-[#f0f3ff] text-[#006c4a] flex items-center justify-center mb-4">
-              <span className="material-symbols-outlined text-2xl">lock</span>
-            </div>
-            <h3 className="font-bold text-sm text-[#111c2d] mb-1.5">Safe Escrow Holding</h3>
-            <p className="text-xs text-[#554336] leading-relaxed">
-              Deposits and adoption fees are held until you conduct an independent 72-hour veterinary checkup at home.
-            </p>
           </div>
         </div>
       </section>
@@ -467,6 +469,24 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         </div>
       </section>
 
+      {/* Dog Raising & Behavioral Care Masterclass */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="mb-6">
+          <div className="flex items-center gap-2 text-xs font-bold text-[#8d4b00] uppercase tracking-wider mb-1">
+            <span className="material-symbols-outlined text-base">school</span>
+            <span>Canine Parenting & Veterinary Guidelines</span>
+          </div>
+          <h2 className="font-['Epilogue'] font-bold text-2xl sm:text-3xl text-[#111c2d]">
+            Tips on How to Raise Dogs: Interactive Care Hub
+          </h2>
+          <p className="text-xs sm:text-sm text-[#554336] mt-1">
+            Explore stage-by-stage routines, biological clocks, and behavioral habits vetted by certified preservation breeders.
+          </p>
+        </div>
+
+        <DogRaisingTipsCard onShowToast={onShowToast} />
+      </section>
+
       {/* Essential Canine Equipment Section */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4 mb-8">
@@ -568,6 +588,64 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               </div>
             );
           })}
+        </div>
+      </section>
+
+      {/* 4 Pillars of Ethical Care */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center max-w-3xl mx-auto mb-10">
+          <div className="inline-flex items-center gap-1.5 text-xs font-bold text-[#006c4a] uppercase tracking-wider mb-2">
+            <span className="material-symbols-outlined text-base">gavel</span>
+            <span>A New Standard For Companion Placement</span>
+          </div>
+          <h2 className="font-['Epilogue'] font-bold text-2xl sm:text-3xl text-[#111c2d]">
+            The 4 Pillars of the PawPalace Guarantee
+          </h2>
+          <p className="text-xs sm:text-sm text-[#554336] mt-2">
+            We ban unlicensed puppy mills, broker networks, and untested pedigrees. Every transaction is held in safe escrow.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="p-6 rounded-3xl bg-white border border-[#dee8ff] hover:border-[#8d4b00] transition-all shadow-xs">
+            <div className="w-12 h-12 rounded-2xl bg-[#ffdcc3] text-[#8d4b00] flex items-center justify-center mb-4">
+              <span className="material-symbols-outlined text-2xl">verified_user</span>
+            </div>
+            <h3 className="font-bold text-sm text-[#111c2d] mb-1.5">Zero-Tolerance Mills</h3>
+            <p className="text-xs text-[#554336] leading-relaxed">
+              Every home breeder undergoes exhaustive background verification, property audits, and capacity limits.
+            </p>
+          </div>
+
+          <div className="p-6 rounded-3xl bg-white border border-[#dee8ff] hover:border-[#006c4a] transition-all shadow-xs">
+            <div className="w-12 h-12 rounded-2xl bg-[#82f5c1] text-[#006c4a] flex items-center justify-center mb-4">
+              <span className="material-symbols-outlined text-2xl">biotech</span>
+            </div>
+            <h3 className="font-bold text-sm text-[#111c2d] mb-1.5">Compulsory DNA Screening</h3>
+            <p className="text-xs text-[#554336] leading-relaxed">
+              Parent bloodlines require verified OFA joint scoring and 250+ genetic disorder negative panels before listing.
+            </p>
+          </div>
+
+          <div className="p-6 rounded-3xl bg-white border border-[#dee8ff] hover:border-[#a33900] transition-all shadow-xs">
+            <div className="w-12 h-12 rounded-2xl bg-[#ffdbce] text-[#a33900] flex items-center justify-center mb-4">
+              <span className="material-symbols-outlined text-2xl">security</span>
+            </div>
+            <h3 className="font-bold text-sm text-[#111c2d] mb-1.5">10-Year Genetic Warranty</h3>
+            <p className="text-xs text-[#554336] leading-relaxed">
+              Industry-leading legal coverage ensuring your companion is protected throughout their adult and senior years.
+            </p>
+          </div>
+
+          <div className="p-6 rounded-3xl bg-white border border-[#dee8ff] hover:border-[#006c4a] transition-all shadow-xs">
+            <div className="w-12 h-12 rounded-2xl bg-[#f0f3ff] text-[#006c4a] flex items-center justify-center mb-4">
+              <span className="material-symbols-outlined text-2xl">lock</span>
+            </div>
+            <h3 className="font-bold text-sm text-[#111c2d] mb-1.5">Safe Escrow Holding</h3>
+            <p className="text-xs text-[#554336] leading-relaxed">
+              Deposits and adoption fees are held until you conduct an independent 72-hour veterinary checkup at home.
+            </p>
+          </div>
         </div>
       </section>
 
