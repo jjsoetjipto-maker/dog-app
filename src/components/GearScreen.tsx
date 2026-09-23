@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { GearProduct } from '../types';
 import { TESTIMONIALS } from '../data/mockData';
+import { useSettings } from '../context/SettingsContext';
 
 interface GearScreenProps {
   products: GearProduct[];
@@ -19,6 +20,7 @@ export const GearScreen: React.FC<GearScreenProps> = ({
   onShowToast,
   onOpenPostGearListing
 }) => {
+  const { t, formatPrice } = useSettings();
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedSize, setSelectedSize] = useState<string>('all');
   const [maxPrice, setMaxPrice] = useState<number>(200);
@@ -27,12 +29,13 @@ export const GearScreen: React.FC<GearScreenProps> = ({
   const [sortBy, setSortBy] = useState<string>('featured');
 
   const categories = [
-    { id: 'all', label: 'All Equipment', icon: 'apps' },
-    { id: 'beds', label: 'Orthopedic Beds', icon: 'bed' },
-    { id: 'harnesses', label: 'Harnesses & Leashes', icon: 'hiking' },
-    { id: 'crates', label: 'Travel Crates', icon: 'luggage' },
+    { id: 'all', label: t.allGearTab, icon: 'apps' },
+    { id: 'nutrition', label: 'Dog Food & Nutrition', icon: 'restaurant' },
+    { id: 'beds', label: t.bedsTab, icon: 'bed' },
+    { id: 'harnesses', label: t.harnessesTab, icon: 'hiking' },
+    { id: 'crates', label: t.travelTab, icon: 'luggage' },
     { id: 'collars', label: 'GPS Smart Collars', icon: 'radar' },
-    { id: 'starter-kits', label: 'Puppy Starter Kits', icon: 'package_2' }
+    { id: 'starter-kits', label: 'Starter Kits & Bundles', icon: 'package_2' }
   ];
 
   const filteredProducts = useMemo(() => {
@@ -58,7 +61,7 @@ export const GearScreen: React.FC<GearScreenProps> = ({
       {/* Top Banner Ribbon */}
       <div className="bg-[#006c4a] text-white text-xs py-2 px-4 text-center font-medium flex items-center justify-center gap-2">
         <span className="material-symbols-outlined text-sm">verified_user</span>
-        <span>Veterinary-Approved Canine Gear: Rigorously field-tested for orthopedic ergonomics, impact safety, and behavioral well-being.</span>
+        <span>Veterinarian-Approved Dog Necessities: Rigorously field-tested for orthopedic ergonomics, impact safety, and behavioral well-being.</span>
       </div>
 
       {/* Editorial Header Stage */}
@@ -67,13 +70,13 @@ export const GearScreen: React.FC<GearScreenProps> = ({
           <div className="relative z-10 max-w-2xl space-y-3">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#82f5c1]/20 border border-[#82f5c1]/40 text-[#82f5c1] text-xs font-bold">
               <span className="material-symbols-outlined text-sm">health_and_safety</span>
-              <span>Canine Biomechanics & Physical Care</span>
+              <span>{t.gearBadge}</span>
             </div>
             <h1 className="font-['Epilogue'] font-bold text-3xl sm:text-4xl lg:text-5xl tracking-tight text-white">
-              Dog Equipment, Gear & Essentials
+              {t.gearTitle}
             </h1>
             <p className="text-xs sm:text-sm text-[#dee8ff]/80 leading-relaxed">
-              Veterinarian-engineered orthopedic beds with spinal support, crash-tested harnesses that eliminate tracheal pressure, IATA-compliant travel kennels, and smart GPS tracking designed for lifetime canine vitality.
+              {t.gearSubtitle}
             </p>
 
             {onOpenPostGearListing && (
@@ -84,7 +87,7 @@ export const GearScreen: React.FC<GearScreenProps> = ({
                   className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#ffdcc3] hover:bg-[#ffe3ce] text-[#8d4b00] rounded-2xl font-bold text-xs shadow-lg transition-all cursor-pointer hover:scale-102"
                 >
                   <span className="material-symbols-outlined text-lg">photo_camera</span>
-                  <span>List Equipment / Product (Take Live Photo)</span>
+                  <span>List Dog Necessity / Product (Take Live Photo)</span>
                 </button>
               </div>
             )}
@@ -127,7 +130,7 @@ export const GearScreen: React.FC<GearScreenProps> = ({
               <div className="flex items-center justify-between pb-3 border-b border-[#e7eeff]">
                 <h3 className="font-bold text-sm text-[#111c2d] flex items-center gap-1.5">
                   <span className="material-symbols-outlined text-base text-[#8d4b00]">tune</span>
-                  <span>Filter Gear</span>
+                  <span>Filter Dog Necessities</span>
                 </h3>
                 <button
                   onClick={() => {
@@ -195,6 +198,10 @@ export const GearScreen: React.FC<GearScreenProps> = ({
                 <div className="space-y-1.5 text-xs text-[#554336]">
                   {[
                     { id: 'all', name: 'All Certified Brands' },
+                    { id: 'CanineVitality', name: 'CanineVitality Whole Prey' },
+                    { id: 'OceanK9', name: 'OceanK9 Coastal Labs' },
+                    { id: 'PureHeritage', name: 'PureHeritage Kitchen' },
+                    { id: 'GastroCare', name: 'GastroCare Veterinary Line' },
                     { id: 'PawPalace', name: 'PawPalace Pro / K9 Elite' },
                     { id: 'CanineRest', name: 'CanineRest Orthopedics' },
                     { id: 'Voyager', name: 'K9 Voyager Safe' },
@@ -273,7 +280,7 @@ export const GearScreen: React.FC<GearScreenProps> = ({
                     className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-[#8d4b00] hover:bg-[#b15f00] text-white rounded-xl font-bold shadow-xs transition-all cursor-pointer"
                   >
                     <span className="material-symbols-outlined text-base">photo_camera</span>
-                    <span>List Equipment with Photo</span>
+                    <span>List Dog Necessity with Photo</span>
                   </button>
                 )}
 
@@ -359,11 +366,11 @@ export const GearScreen: React.FC<GearScreenProps> = ({
                         {/* Price Display */}
                         <div className="flex items-baseline gap-2 mt-2">
                           <span className="font-bold text-base text-[#111c2d]">
-                            ${product.price.toFixed(2)}
+                            {formatPrice(product.price)}
                           </span>
                           {product.originalPrice && (
                             <span className="text-xs text-[#887364] line-through">
-                              ${product.originalPrice.toFixed(2)}
+                              {formatPrice(product.originalPrice)}
                             </span>
                           )}
                         </div>
@@ -379,7 +386,7 @@ export const GearScreen: React.FC<GearScreenProps> = ({
                           className="w-full bg-[#111c2d] hover:bg-[#8d4b00] text-white py-2.5 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
                         >
                           <span className="material-symbols-outlined text-sm">shopping_bag</span>
-                          <span>Add to Bag</span>
+                          <span>{t.addToBagBtn}</span>
                         </button>
                       </div>
 

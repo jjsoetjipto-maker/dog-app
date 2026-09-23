@@ -433,6 +433,122 @@ export const GEAR_PRODUCTS: GearProduct[] = [
     colors: ['Natural Earth Bundle'],
     sizes: ['Puppy / Small Breed', 'Standard / Large Breed'],
     specs: ['BPA, PVC & phthalate-free natural materials', 'Veterinarian approved soothing formulas', 'Includes puppy potty training guide']
+  },
+  {
+    id: 'gear-food-raw-beef',
+    name: 'Freeze-Dried Raw Grass-Fed Beef & Superfoods Dinner Patties',
+    brand: 'CanineVitality Whole Prey',
+    price: 39.99,
+    originalPrice: 49.99,
+    rating: 4.96,
+    reviewsCount: 342,
+    image: 'https://images.unsplash.com/photo-1589924691995-400dc9ecc119?auto=format&fit=crop&w=800&q=80',
+    tag: 'Raw Nutrition',
+    tagColor: 'bg-[#006c4a] text-white',
+    category: 'nutrition',
+    inStockBadge: 'Fresh Batch • In Stock',
+    subBadge: '95% MEAT & ORGANS',
+    description: 'Veterinarian-formulated whole-prey raw diet with 95% grass-fed beef, nutrient-dense liver, heart, bone, and organic certified blueberries, spinach, and kelp. Freeze-dried to lock in natural enzymes without heat degradation.',
+    colors: ['Original Beef Feast', 'Venison Blend'],
+    sizes: ['14 oz Resealable Bag', '28 oz Value Pack'],
+    specs: [
+      '42% Crude Protein, 30% Healthy Fats',
+      '100% AAFCO Complete & Balanced for All Life Stages',
+      'Grain-Free, Corn-Free, No Artificial Preservatives or Fillers',
+      'Rehydrate in 3 minutes with warm water or bone broth'
+    ]
+  },
+  {
+    id: 'gear-food-wild-salmon',
+    name: 'Cold-Pressed Wild Alaskan Salmon & Ancient Grains Adult Recipe',
+    brand: 'OceanK9 Coastal Labs',
+    price: 68.00,
+    originalPrice: 82.00,
+    rating: 4.91,
+    reviewsCount: 218,
+    image: 'https://images.unsplash.com/photo-1568640347023-a616a30bc3bd?auto=format&fit=crop&w=800&q=80',
+    tag: 'Skin & Coat',
+    tagColor: 'bg-[#1c355e] text-white',
+    category: 'nutrition',
+    inStockBadge: 'In Stock • Ships Free',
+    subBadge: 'OMEGA-3 DENSE',
+    description: 'Slow cold-pressed at 115°F to preserve essential EPA and DHA Omega-3 fatty acids that traditional high-heat kibble destroys. Formulated with wild-caught Alaskan salmon, organic pumpkin, and ancient chia seeds for a glossy, itch-free coat.',
+    colors: ['Wild Salmon Recipe'],
+    sizes: ['11 lb Eco Bag', '22 lb Breeder Bag'],
+    specs: [
+      'High EPA & DHA concentration for dermatitis and joint mobility',
+      'Cold-pressed gently for optimal bioavailability and easy digestion',
+      'Infused with 100 Million CFU/lb live probiotics for microbiome balance'
+    ]
+  },
+  {
+    id: 'gear-food-puppy-stew',
+    name: 'Human-Grade Slow-Cooked Turkey & Colostrum Puppy Growth Stew',
+    brand: 'PureHeritage Kitchen',
+    price: 44.50,
+    originalPrice: 54.00,
+    rating: 4.97,
+    reviewsCount: 189,
+    image: 'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?auto=format&fit=crop&w=800&q=80',
+    tag: 'Puppy Growth',
+    tagColor: 'bg-[#8d4b00] text-white',
+    category: 'nutrition',
+    inStockBadge: 'Veterinary Choice',
+    subBadge: 'DHA + COLOSTRUM',
+    description: 'Crafted specifically for rapid growth phases in puppies. Made with 100% human-grade pasture-raised turkey, sweet potato, pure marine microalgae DHA for brain development, and bovine colostrum to support developing immune systems.',
+    colors: ['Gentle Turkey & Sweet Potato'],
+    sizes: ['12-Pack (8 oz Pouches)', '24-Pack Variety Case'],
+    specs: [
+      'Natural DHA supports puppy cognitive learning and trainability',
+      'Bovine colostrum protects immature digestive gut mucosa',
+      'Precise 1.2:1 Calcium-to-Phosphorus ratio for healthy bone formation'
+    ]
+  },
+  {
+    id: 'gear-food-duck-sensitive',
+    name: 'Sensitive Digestion Single-Protein French Duck & Squash Entrée',
+    brand: 'GastroCare Veterinary Line',
+    price: 52.00,
+    originalPrice: 64.00,
+    rating: 4.89,
+    reviewsCount: 147,
+    image: 'https://images.unsplash.com/photo-1582798358481-d199fb7347bb?auto=format&fit=crop&w=800&q=80',
+    tag: 'Allergy Safe',
+    tagColor: 'bg-[#a33900] text-white',
+    category: 'nutrition',
+    inStockBadge: 'In Stock',
+    subBadge: 'HYPOALLERGENIC',
+    description: 'Limited-ingredient single novel protein formulation engineered for companions prone to recurrent allergies, food intolerances, or sensitive digestion. Features cage-free duck and prebiotic butternut squash.',
+    colors: ['Novel Duck & Squash'],
+    sizes: ['10 lb Bag', '20 lb Bag'],
+    specs: [
+      '100% Single novel protein (Zero chicken, beef, dairy, or egg proteins)',
+      'Prebiotic soluble fiber soothes gut microbiome',
+      'Elimination diet compliant under veterinary guidance'
+    ]
+  },
+  {
+    id: 'gear-food-bone-broth',
+    name: 'Organic Grass-Fed Bone Broth & Turmeric Joint Elixir (Pack of 3)',
+    brand: 'NurturePup Organics',
+    price: 26.00,
+    originalPrice: 32.00,
+    rating: 4.98,
+    reviewsCount: 410,
+    image: 'https://images.unsplash.com/photo-1548767797-d8c844163c4c?auto=format&fit=crop&w=800&q=80',
+    tag: 'Hydration & Joints',
+    tagColor: 'bg-[#006c4a] text-white',
+    category: 'nutrition',
+    inStockBadge: 'Bestselling Topper',
+    subBadge: 'COLLAGEN RICH',
+    description: 'Slow-simmered for 24 hours from pasture-raised cattle marrow bones, turmeric, ginger, and apple cider vinegar. Pours over kibble or freeze-dried food to increase hydration, collagen, and entice finicky eaters.',
+    colors: ['Golden Turmeric Beef', 'Wild Salmon Broth'],
+    sizes: ['3-Pack (16 oz Pouches)', '6-Pack Case'],
+    specs: [
+      'Naturally rich in Collagen, Glucosamine & Chondroitin for cartilage',
+      'Zero added sodium, onion, garlic, or synthetic binders',
+      'Ideal for puppy weaning, seniors, and active sports dogs'
+    ]
   }
 ];
 

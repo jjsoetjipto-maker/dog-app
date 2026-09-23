@@ -1,21 +1,29 @@
 import React, { useState, useMemo } from 'react';
 import { Dog, Screen } from '../types';
 import { DogIndividualPriceChart } from './DogIndividualPriceChart';
+import { RejectedListingsModal } from './RejectedListingsModal';
+import { useSettings } from '../context/SettingsContext';
 
 interface FindDogsScreenProps {
   dogs: Dog[];
+  allDogs?: Dog[];
   onSelectDog: (dog: Dog) => void;
   onOpenChat: (dog: Dog) => void;
   onToggleFavorite: (id: string) => void;
   favoritedDogIds: string[];
   setCurrentScreen: (screen: Screen) => void;
-  onShowToast: (msg: string) => void;
+  onShowToast?: (msg: string) => void;
   initialSearchQuery?: string;
   onOpenPostListing?: () => void;
+  onRejectDog?: (id: string) => void;
+  onRestoreDog?: (id: string) => void;
+  onRestoreAllDogs?: () => void;
+  rejectedDogIds?: string[];
 }
 
 export const FindDogsScreen: React.FC<FindDogsScreenProps> = ({
   dogs,
+  allDogs = [],
   onSelectDog,
   onOpenChat,
   onToggleFavorite,
@@ -23,8 +31,13 @@ export const FindDogsScreen: React.FC<FindDogsScreenProps> = ({
   setCurrentScreen,
   onShowToast,
   initialSearchQuery = '',
-  onOpenPostListing
+  onOpenPostListing,
+  onRejectDog,
+  onRestoreDog,
+  onRestoreAllDogs,
+  rejectedDogIds = []
 }) => {
+  const { t, formatPrice } = useSettings();
   const [categoryFilter, setCategoryFilter] = useState<'all' | 'puppy' | 'rescue'>('all');
   const [breedSearch, setBreedSearch] = useState('');
   const [selectedBreeds, setSelectedBreeds] = useState<string[]>([]);
@@ -36,6 +49,31 @@ export const FindDogsScreen: React.FC<FindDogsScreenProps> = ({
   const [sortBy, setSortBy] = useState<string>('featured');
   const [alertEmail, setAlertEmail] = useState('');
   const [showPriceChart, setShowPriceChart] = useState<boolean>(true);
+  const [isRejectedModalOpen, setIsRejectedModalOpen] = useState<boolean>(false);
+
+  // Filter out any rejected dogs from display
+  const nonRejectedDogs = useMemo(() => {
+    return dogs.filter((d) => {
+      const isRejected =
+        d.approvalStatus === 'rejected' ||
+        d.photoApprovalStatus === 'rejected' ||
+        d.nameApprovalStatus === 'rejected' ||
+        rejectedDogIds.includes(d.id);
+      return !isRejected;
+    });
+  }, [dogs, rejectedDogIds]);
+
+  // List of all rejected dogs for the review/restore modal
+  const rejectedDogsList = useMemo(() => {
+    const combined = allDogs.length > 0 ? allDogs : dogs;
+    return combined.filter(
+      (d) =>
+        rejectedDogIds.includes(d.id) ||
+        d.approvalStatus === 'rejected' ||
+        d.photoApprovalStatus === 'rejected' ||
+        d.nameApprovalStatus === 'rejected'
+    );
+  }, [allDogs, dogs, rejectedDogIds]);
 
   const breedList = [
     { name: 'Golden Retriever', count: 42 },
@@ -57,11 +95,12 @@ export const FindDogsScreen: React.FC<FindDogsScreenProps> = ({
 
   const filteredDogs = useMemo(() => {
     return dogs.filter((d) => {
-      // Rejection safeguard: Exclude any listing rejected by the owner from the public shop
+      // Rejection safeguard: Exclude any listing rejected by user or owner governance
       if (
         d.approvalStatus === 'rejected' ||
         d.photoApprovalStatus === 'rejected' ||
-        d.nameApprovalStatus === 'rejected'
+        d.nameApprovalStatus === 'rejected' ||
+        rejectedDogIds.includes(d.id)
       ) {
         return false;
       }
@@ -100,10 +139,10 @@ export const FindDogsScreen: React.FC<FindDogsScreenProps> = ({
   const handleAlertSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!alertEmail || !alertEmail.includes('@')) {
-      onShowToast('Please provide a valid email.');
+      onShowToast?.('Please provide a valid email.');
       return;
     }
-    onShowToast(`Match Alert Created! You will receive instant notifications for new OFA-cleared litters.`);
+    onShowToast?.(`Match Alert Created! You will receive instant notifications for new OFA-cleared litters.`);
     setAlertEmail('');
   };
 
@@ -115,21 +154,27 @@ export const FindDogsScreen: React.FC<FindDogsScreenProps> = ({
         <div className="max-w-7xl mx-auto space-y-3">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#ffdcc3] text-[#8d4b00] text-xs font-bold">
             <span className="material-symbols-outlined text-sm">verified</span>
-            <span>Audited Home Litters & Accredited Rescues</span>
+            <span>{t.findDogsBadge}</span>
           </div>
           <h1 className="font-['Epilogue'] font-bold text-3xl sm:text-4xl text-[#111c2d] tracking-tight">
-            Find Your New Best Friend
+            {t.findDogsTitle}
           </h1>
           <p className="text-xs sm:text-sm text-[#554336] max-w-2xl leading-relaxed">
-            Every listed companion is backed by parental DNA and orthopedic screenings, home-raised socialization protocols, 72-hour escrow protection, and our 10-year genetic health guarantee.
+            {t.findDogsSubtitle}
           </p>
 
           {/* Active Filter Tags */}
           <div className="flex flex-wrap items-center gap-2 pt-3">
-            <span className="text-[11px] font-bold text-[#887364] uppercase tracking-wider">Active:</span>
+            <span className="text-[11px] font-bold text-[#887364] uppercase tracking-wider">{t.activeFiltersLabel}</span>
             
             <span className="inline-flex items-center gap-1 text-xs bg-white text-[#111c2d] px-3 py-1 rounded-full border border-[#dee8ff]">
-              <span>Category: {categoryFilter === 'all' ? 'All Dogs' : categoryFilter}</span>
+              <span>
+                {categoryFilter === 'all'
+                  ? t.activeCategoryAll
+                  : categoryFilter === 'puppy'
+                  ? t.activeCategoryPuppies
+                  : t.activeCategoryRescues}
+              </span>
               {categoryFilter !== 'all' && (
                 <button onClick={() => setCategoryFilter('all')} className="text-[#887364] hover:text-[#111c2d] cursor-pointer">×</button>
               )}
@@ -137,12 +182,12 @@ export const FindDogsScreen: React.FC<FindDogsScreenProps> = ({
 
             <span className="inline-flex items-center gap-1 text-xs bg-white text-[#006c4a] px-3 py-1 rounded-full border border-[#82f5c1]">
               <span className="material-symbols-outlined text-xs">verified</span>
-              <span>OFA Cleared Lineage</span>
+              <span>{t.ofaClearedLineage}</span>
             </span>
 
             <span className="inline-flex items-center gap-1 text-xs bg-white text-[#006c4a] px-3 py-1 rounded-full border border-[#82f5c1]">
               <span className="material-symbols-outlined text-xs">biotech</span>
-              <span>250+ Genetic DNA Panel</span>
+              <span>{t.geneticDnaPanel}</span>
             </span>
 
             <button
@@ -154,7 +199,7 @@ export const FindDogsScreen: React.FC<FindDogsScreenProps> = ({
               }}
               className="text-xs text-[#8d4b00] font-bold hover:underline cursor-pointer ml-2"
             >
-              Reset Filters
+              {t.resetFiltersBtn}
             </button>
           </div>
         </div>
@@ -171,20 +216,20 @@ export const FindDogsScreen: React.FC<FindDogsScreenProps> = ({
               <div className="flex items-center justify-between pb-3 border-b border-[#e7eeff]">
                 <h3 className="font-bold text-sm text-[#111c2d] flex items-center gap-1.5">
                   <span className="material-symbols-outlined text-base text-[#8d4b00]">tune</span>
-                  <span>Filter Companions</span>
+                  <span>{t.filterCompanionsTitle}</span>
                 </h3>
               </div>
 
               {/* Category Radio */}
               <div>
                 <label className="block text-[11px] font-bold text-[#887364] uppercase tracking-wider mb-2">
-                  Category Type
+                  {t.categoryTypeLabel}
                 </label>
                 <div className="space-y-1.5 text-xs text-[#554336]">
                   {[
-                    { id: 'all', label: 'All Dogs (248)' },
-                    { id: 'puppy', label: 'Ethical Puppies (182)' },
-                    { id: 'rescue', label: 'Rescue & Shelter (66)' }
+                    { id: 'all', label: `${t.catAllDogs} (248)` },
+                    { id: 'puppy', label: `${t.catEthicalPuppies} (182)` },
+                    { id: 'rescue', label: `${t.catRescueShelter} (66)` }
                   ].map((cat) => (
                     <label key={cat.id} className="flex items-center gap-2 cursor-pointer hover:text-[#111c2d]">
                       <input
@@ -204,7 +249,7 @@ export const FindDogsScreen: React.FC<FindDogsScreenProps> = ({
               <div>
                 <div className="flex justify-between items-center mb-1.5">
                   <label className="block text-[11px] font-bold text-[#887364] uppercase tracking-wider">
-                    Breed
+                    {t.breedLabel}
                   </label>
                   {selectedBreeds.length > 0 && (
                     <button
@@ -219,7 +264,7 @@ export const FindDogsScreen: React.FC<FindDogsScreenProps> = ({
                   type="text"
                   value={breedSearch}
                   onChange={(e) => setBreedSearch(e.target.value)}
-                  placeholder="Search breed..."
+                  placeholder={t.breedSearchPlaceholder}
                   className="w-full px-2.5 py-1.5 text-xs bg-[#f0f3ff] border border-[#dee8ff] rounded-xl mb-2 focus:outline-none focus:border-[#8d4b00]"
                 />
                 <div className="max-h-40 overflow-y-auto space-y-1.5 text-xs text-[#554336] pr-1">
@@ -245,20 +290,25 @@ export const FindDogsScreen: React.FC<FindDogsScreenProps> = ({
               {/* Life Stage */}
               <div>
                 <label className="block text-[11px] font-bold text-[#887364] uppercase tracking-wider mb-2">
-                  Life Stage
+                  {t.ageLabel}
                 </label>
                 <div className="flex flex-wrap gap-1.5">
-                  {['all', 'Puppy (8-16w)', 'Young (4-12m)', 'Adult'].map((age) => (
+                  {[
+                    { id: 'all', label: t.ageAll },
+                    { id: 'Puppy (8-16w)', label: t.agePuppy },
+                    { id: 'Young (4-12m)', label: t.ageYoung },
+                    { id: 'Adult', label: t.ageAdult }
+                  ].map((age) => (
                     <button
-                      key={age}
-                      onClick={() => setSelectedAge(age)}
+                      key={age.id}
+                      onClick={() => setSelectedAge(age.id)}
                       className={`text-[11px] px-2.5 py-1.5 rounded-lg border font-medium cursor-pointer ${
-                        selectedAge === age
+                        selectedAge === age.id
                           ? 'bg-[#ffdcc3] text-[#8d4b00] border-[#8d4b00]'
                           : 'bg-[#f0f3ff] text-[#554336] border-[#dee8ff]'
                       }`}
                     >
-                      {age === 'all' ? 'All Ages' : age}
+                      {age.label}
                     </button>
                   ))}
                 </div>
@@ -267,20 +317,24 @@ export const FindDogsScreen: React.FC<FindDogsScreenProps> = ({
               {/* Gender */}
               <div>
                 <label className="block text-[11px] font-bold text-[#887364] uppercase tracking-wider mb-2">
-                  Gender
+                  {t.genderLabel}
                 </label>
                 <div className="grid grid-cols-3 gap-1.5 text-xs">
-                  {['all', 'Male', 'Female'].map((g) => (
+                  {[
+                    { id: 'all', label: t.genderAll },
+                    { id: 'Male', label: t.genderMale },
+                    { id: 'Female', label: t.genderFemale }
+                  ].map((g) => (
                     <button
-                      key={g}
-                      onClick={() => setSelectedGender(g)}
+                      key={g.id}
+                      onClick={() => setSelectedGender(g.id)}
                       className={`py-1.5 rounded-lg border font-medium cursor-pointer text-center ${
-                        selectedGender === g
+                        selectedGender === g.id
                           ? 'bg-[#ffdcc3] text-[#8d4b00] border-[#8d4b00]'
                           : 'bg-[#f0f3ff] text-[#554336] border-[#dee8ff]'
                       }`}
                     >
-                      {g === 'all' ? 'Any' : g}
+                      {g.label}
                     </button>
                   ))}
                 </div>
@@ -290,7 +344,7 @@ export const FindDogsScreen: React.FC<FindDogsScreenProps> = ({
               <div className="p-3.5 bg-[#f0f3ff] rounded-2xl border border-[#dee8ff] space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-bold text-[#006c4a] uppercase tracking-wider">
-                    Health Credentials
+                    {t.healthClearancesLabel}
                   </span>
                   <span className="bg-[#82f5c1] text-[#006c4a] text-[9px] font-bold px-1.5 py-0.5 rounded">
                     Strict
@@ -303,7 +357,7 @@ export const FindDogsScreen: React.FC<FindDogsScreenProps> = ({
                     onChange={(e) => setRequireOFA(e.target.checked)}
                     className="rounded text-[#006c4a]"
                   />
-                  <span>OFA Hips/Elbows Cleared</span>
+                  <span>{t.ofaScreenedOnly}</span>
                 </label>
                 <label className="flex items-center gap-2 text-xs text-[#554336] cursor-pointer">
                   <input
@@ -312,15 +366,15 @@ export const FindDogsScreen: React.FC<FindDogsScreenProps> = ({
                     onChange={(e) => setRequireDNA(e.target.checked)}
                     className="rounded text-[#006c4a]"
                   />
-                  <span>DNA 250+ Disorder Clear</span>
+                  <span>{t.dnaPanelOnly}</span>
                 </label>
               </div>
 
               {/* Placement Fee Slider with Histogram representation */}
               <div>
                 <div className="flex justify-between items-center mb-1 text-xs">
-                  <span className="font-bold text-[#887364] uppercase text-[11px]">Max Adoption Fee</span>
-                  <span className="font-bold text-[#8d4b00]">${maxFee.toLocaleString()}</span>
+                  <span className="font-bold text-[#887364] uppercase text-[11px]">{t.maxAdoptionFee}</span>
+                  <span className="font-bold text-[#8d4b00]">{formatPrice(maxFee)}</span>
                 </div>
 
                 {/* Decorative fee density histogram */}
@@ -344,9 +398,9 @@ export const FindDogsScreen: React.FC<FindDogsScreenProps> = ({
                   className="w-full accent-[#8d4b00] cursor-pointer"
                 />
                 <div className="flex justify-between text-[10px] text-[#887364] mt-1">
-                  <span>$300 (Rescue)</span>
-                  <span>$1,800</span>
-                  <span>$3,500+</span>
+                  <span>{formatPrice(300)} (Rescue)</span>
+                  <span>{formatPrice(1800)}</span>
+                  <span>{formatPrice(3500)}+</span>
                 </div>
               </div>
 
@@ -358,10 +412,21 @@ export const FindDogsScreen: React.FC<FindDogsScreenProps> = ({
             
             {/* Top Toolbar */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-[#dee8ff]">
-              <div>
+              <div className="flex items-center gap-3">
                 <p className="text-xs text-[#554336]">
-                  Showing <strong className="text-[#111c2d]">{filteredDogs.length}</strong> verified dogs & puppies
+                  {t.showingLabel} <strong className="text-[#111c2d]">{filteredDogs.length}</strong> {t.verifiedCompanionsCount}
                 </p>
+                {rejectedDogIds && rejectedDogIds.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setIsRejectedModalOpen(true)}
+                    className="text-xs font-bold text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 px-3 py-1 rounded-full flex items-center gap-1.5 cursor-pointer transition-colors shadow-2xs"
+                    title="View listings you have rejected"
+                  >
+                    <span className="material-symbols-outlined text-xs">visibility_off</span>
+                    <span>{rejectedDogIds.length} Hidden / Rejected</span>
+                  </button>
+                )}
               </div>
 
               <div className="flex flex-wrap items-center gap-2 text-xs">
@@ -372,7 +437,7 @@ export const FindDogsScreen: React.FC<FindDogsScreenProps> = ({
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold bg-[#8d4b00] hover:bg-[#b15f00] text-white shadow-xs transition-all cursor-pointer"
                   >
                     <span className="material-symbols-outlined text-sm">photo_camera</span>
-                    <span>List Dog with Photo</span>
+                    <span>{t.listDogWithPhotoBtn}</span>
                   </button>
                 )}
 
@@ -387,20 +452,20 @@ export const FindDogsScreen: React.FC<FindDogsScreenProps> = ({
                   }`}
                 >
                   <span className="material-symbols-outlined text-sm">show_chart</span>
-                  <span>{showPriceChart ? 'Individual Charts: ON' : 'Individual Charts: OFF'}</span>
+                  <span>{showPriceChart ? t.chartsOn : t.chartsOff}</span>
                 </button>
 
                 <div className="flex items-center gap-1.5">
-                  <span className="text-[#887364]">Sort:</span>
+                  <span className="text-[#887364]">{t.sortByLabel}</span>
                   <select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value)}
                     className="bg-[#f0f3ff] border border-[#dee8ff] rounded-xl px-3 py-1.5 font-bold text-[#111c2d] focus:outline-none focus:border-[#8d4b00] cursor-pointer"
                   >
-                    <option value="featured">Featured Recommendations</option>
+                    <option value="featured">{t.sortByFeatured}</option>
                     <option value="distance">Nearest Distance</option>
-                    <option value="fee-low">Fee: Low to High</option>
-                    <option value="fee-high">Fee: High to Low</option>
+                    <option value="fee-low">{t.sortByPriceLow}</option>
+                    <option value="fee-high">{t.sortByPriceHigh}</option>
                   </select>
                 </div>
               </div>
@@ -443,23 +508,43 @@ export const FindDogsScreen: React.FC<FindDogsScreenProps> = ({
                         )}
                       </div>
 
-                      {/* Favorite Button */}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onToggleFavorite(dog.id);
-                          onShowToast(isFavorited ? `Removed ${dog.name} from wishlist` : `Saved ${dog.name} to wishlist!`);
-                        }}
-                        className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/90 backdrop-blur-xs flex items-center justify-center text-[#887364] hover:text-[#ba1a1a] transition-colors cursor-pointer shadow-sm z-10"
-                      >
-                        <span className="material-symbols-outlined text-base">
-                          {isFavorited ? 'favorite' : 'favorite_border'}
-                        </span>
-                      </button>
+                      {/* Top Right Actions: Reject / Hide & Favorite */}
+                      <div className="absolute top-3 right-3 flex items-center gap-1.5 z-10">
+                        {onRejectDog && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onRejectDog(dog.id);
+                            }}
+                            title={`Reject ${dog.name} (Never show this dog again)`}
+                            className="w-8 h-8 rounded-full bg-white/90 hover:bg-red-50 text-[#887364] hover:text-red-600 backdrop-blur-xs flex items-center justify-center transition-colors cursor-pointer shadow-sm group/reject"
+                          >
+                            <span className="material-symbols-outlined text-base group-hover/reject:scale-110 transition-transform">
+                              visibility_off
+                            </span>
+                          </button>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onToggleFavorite(dog.id);
+                            onShowToast?.(isFavorited ? `Removed ${dog.name} from wishlist` : `Saved ${dog.name} to wishlist!`);
+                          }}
+                          className="w-8 h-8 rounded-full bg-white/90 backdrop-blur-xs flex items-center justify-center text-[#887364] hover:text-[#ba1a1a] transition-colors cursor-pointer shadow-sm"
+                          title={isFavorited ? 'Remove from wishlist' : 'Save to wishlist'}
+                        >
+                          <span className="material-symbols-outlined text-base">
+                            {isFavorited ? 'favorite' : 'favorite_border'}
+                          </span>
+                        </button>
+                      </div>
 
                       {/* Price Tag Overlay */}
                       <div className="absolute bottom-3 left-3 bg-[#111c2d]/85 backdrop-blur-xs text-white text-xs font-bold px-2.5 py-1 rounded-xl pointer-events-none">
-                        ${dog.price.toLocaleString()}
+                        {formatPrice(dog.price)}
                       </div>
                     </div>
 
@@ -537,14 +622,14 @@ export const FindDogsScreen: React.FC<FindDogsScreenProps> = ({
                           }}
                           className="w-full bg-[#f0f3ff] hover:bg-[#dee8ff] text-[#111c2d] py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer text-center"
                         >
-                          Profile
+                          {t.viewProfileBtn}
                         </button>
                         <button
                           onClick={() => onOpenChat(dog)}
                           className="w-full bg-[#8d4b00] hover:bg-[#b15f00] text-white py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center justify-center gap-1"
                         >
                           <span className="material-symbols-outlined text-sm">chat</span>
-                          <span>Inquire</span>
+                          <span>{t.cardInquireBtn}</span>
                         </button>
                       </div>
 
@@ -562,10 +647,10 @@ export const FindDogsScreen: React.FC<FindDogsScreenProps> = ({
                 </div>
                 <div>
                   <h4 className="font-bold text-xs sm:text-sm text-[#111c2d]">
-                    Can't find the exact companion you're searching for?
+                    {t.matchAlertTitle}
                   </h4>
                   <p className="text-[11px] text-[#554336]">
-                    Set a PawPalace Match Alert. We will notify you the moment an OFA-cleared litter is born.
+                    {t.matchAlertDesc}
                   </p>
                 </div>
               </div>
@@ -575,14 +660,14 @@ export const FindDogsScreen: React.FC<FindDogsScreenProps> = ({
                   type="email"
                   value={alertEmail}
                   onChange={(e) => setAlertEmail(e.target.value)}
-                  placeholder="Enter your email"
+                  placeholder={t.matchAlertPlaceholder}
                   className="px-3 py-2 bg-white border border-[#dee8ff] rounded-xl text-xs focus:outline-none focus:border-[#8d4b00] w-full sm:w-48"
                 />
                 <button
                   type="submit"
                   className="bg-[#8d4b00] hover:bg-[#b15f00] text-white px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap cursor-pointer transition-colors"
                 >
-                  Notify Me
+                  {t.matchAlertBtn}
                 </button>
               </form>
             </div>
@@ -591,6 +676,15 @@ export const FindDogsScreen: React.FC<FindDogsScreenProps> = ({
 
         </div>
       </section>
+
+      {/* Rejected Listings Modal */}
+      <RejectedListingsModal
+        isOpen={isRejectedModalOpen}
+        onClose={() => setIsRejectedModalOpen(false)}
+        rejectedDogs={rejectedDogsList}
+        onRestoreDog={(id) => onRestoreDog?.(id)}
+        onRestoreAll={onRestoreAllDogs}
+      />
 
     </div>
   );

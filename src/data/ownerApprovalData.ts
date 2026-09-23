@@ -4,7 +4,7 @@ import { DOGS } from './mockData';
 const STORAGE_KEY = 'pawpalace_managed_dogs';
 const OWNER_AUTH_KEY = 'pawpalace_owner_authenticated';
 export const OWNER_DEFAULT_PASSCODE = 'paste393';
-export const OWNER_DEFAULT_EMAIL = 'jj.soetjipto@gmail.com';
+export const OWNER_DEFAULT_EMAIL = 'Platform Owner';
 
 // Pre-seeded approval states so the Owner Portal has a rich, realistic queue immediately
 export const INITIAL_SUBMISSION_QUEUE: Dog[] = [

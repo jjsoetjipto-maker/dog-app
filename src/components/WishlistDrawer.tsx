@@ -1,5 +1,6 @@
 import React from 'react';
 import { Dog, GearProduct, Screen } from '../types';
+import { useSettings } from '../context/SettingsContext';
 
 interface WishlistDrawerProps {
   isOpen: boolean;
@@ -28,6 +29,7 @@ export const WishlistDrawer: React.FC<WishlistDrawerProps> = ({
   onAddToCart,
   setCurrentScreen
 }) => {
+  const { t, formatPrice } = useSettings();
   if (!isOpen) return null;
 
   const favoriteDogs = allDogs.filter((d) => favoritedDogIds.includes(d.id));
@@ -45,7 +47,7 @@ export const WishlistDrawer: React.FC<WishlistDrawerProps> = ({
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-[#8d4b00] text-2xl">favorite</span>
             <h3 className="font-bold text-base text-[#111c2d]">
-              Saved Wishlist ({totalFavorites})
+              {t.wishlistTitle} ({totalFavorites})
             </h3>
           </div>
           <button
@@ -64,9 +66,9 @@ export const WishlistDrawer: React.FC<WishlistDrawerProps> = ({
               <div className="w-16 h-16 bg-[#f0f3ff] rounded-full flex items-center justify-center mx-auto mb-3 text-[#887364]">
                 <span className="material-symbols-outlined text-3xl">favorite_border</span>
               </div>
-              <h4 className="font-bold text-[#111c2d] text-sm">No favorites saved yet</h4>
+              <h4 className="font-bold text-[#111c2d] text-sm">{t.wishlistEmptyTitle}</h4>
               <p className="text-xs text-[#887364] mt-1 max-w-xs mx-auto">
-                Click the heart icon on any puppy, rescue dog, or piece of canine gear to save it to your wishlist.
+                {t.wishlistEmptyDesc}
               </p>
             </div>
           ) : (
@@ -103,7 +105,7 @@ export const WishlistDrawer: React.FC<WishlistDrawerProps> = ({
                           </div>
                           <p className="text-[11px] text-[#554336]">{dog.breed} • {dog.ageText}</p>
                           <p className="text-[11px] font-bold text-[#8d4b00] mt-1">
-                            ${dog.price.toLocaleString()}
+                            {formatPrice(dog.price)}
                           </p>
                           <div className="mt-2 flex items-center gap-2">
                             <button
@@ -114,7 +116,7 @@ export const WishlistDrawer: React.FC<WishlistDrawerProps> = ({
                               }}
                               className="text-[11px] bg-[#8d4b00] text-white px-3 py-1 rounded-full font-bold hover:bg-[#b15f00] transition-colors cursor-pointer"
                             >
-                              View Profile
+                              {t.adoptViewBtn}
                             </button>
                           </div>
                         </div>
@@ -156,7 +158,7 @@ export const WishlistDrawer: React.FC<WishlistDrawerProps> = ({
                           </div>
                           <p className="text-[11px] text-[#554336]">{product.brand}</p>
                           <p className="text-[11px] font-bold text-[#8d4b00] mt-1">
-                            ${product.price.toFixed(2)}
+                            {formatPrice(product.price)}
                           </p>
                           <div className="mt-2">
                             <button
@@ -166,7 +168,7 @@ export const WishlistDrawer: React.FC<WishlistDrawerProps> = ({
                               className="text-[11px] bg-[#006c4a] text-white px-3 py-1 rounded-full font-bold hover:bg-[#005137] transition-colors cursor-pointer flex items-center gap-1"
                             >
                               <span className="material-symbols-outlined text-sm">add_shopping_cart</span>
-                              <span>Add to Bag</span>
+                              <span>{t.addToBagBtn}</span>
                             </button>
                           </div>
                         </div>

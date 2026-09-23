@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { PawPrint } from 'lucide-react';
 import { Screen, Dog, UserProfile } from '../types';
+import { useSettings } from '../context/SettingsContext';
+import { LANGUAGE_OPTIONS } from '../i18n/translations';
+import { requestCurrentGPSLocation } from '../services/locationService';
 
 interface HeaderProps {
   currentScreen: Screen;
@@ -15,6 +18,7 @@ interface HeaderProps {
   wishlistCount: number;
   onOpenWishlist: () => void;
   onOpenPostListing: () => void;
+  onOpenSettings: () => void;
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   zipCode: string;
@@ -37,6 +41,7 @@ export const Header: React.FC<HeaderProps> = ({
   wishlistCount,
   onOpenWishlist,
   onOpenPostListing,
+  onOpenSettings,
   searchQuery,
   setSearchQuery,
   zipCode,
@@ -45,8 +50,29 @@ export const Header: React.FC<HeaderProps> = ({
   setSearchCategory,
   onTriggerSearch
 }) => {
+  const { theme, isDark, setTheme, language, setLanguage, t } = useSettings();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [langDropdownOpen, setLangDropdownOpen] = useState(false);
+  const [isLocating, setIsLocating] = useState(false);
+
+  const handleAskLocationAccess = async () => {
+    setIsLocating(true);
+    try {
+      const coords = await requestCurrentGPSLocation();
+      setIsLocating(false);
+      let detectedZip = '78701';
+      if (coords.lat > 32.5) detectedZip = '75201'; // Dallas
+      else if (coords.lng > -96.2) detectedZip = '77002'; // Houston
+      else if (coords.lat < 29.6) detectedZip = '78205'; // San Antonio
+      setZipCode(detectedZip);
+    } catch (err) {
+      setIsLocating(false);
+      console.warn('Location request error in header:', err);
+    }
+  };
+
+  const currentLangObj = LANGUAGE_OPTIONS.find((l) => l.code === language) || LANGUAGE_OPTIONS[0];
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,28 +83,103 @@ export const Header: React.FC<HeaderProps> = ({
     <header className="sticky top-0 z-40 bg-[#ffffff] border-b border-[#e7eeff] shadow-[0_2px_12px_rgba(17,28,45,0.04)]">
       {/* Top Banner Notice */}
       <div className="bg-[#111c2d] text-white text-xs py-1.5 px-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-[15px] text-[#ffdcc3]">verified_user</span>
-            <span className="font-medium tracking-wide">
-              100% OFA & DNA Screened Providers • 10-Year Genetic Health Warranty & Escrow Protection
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 overflow-hidden">
+            <span className="material-symbols-outlined text-[15px] text-[#ffdcc3] shrink-0">verified_user</span>
+            <span className="font-medium tracking-wide truncate text-[11px] sm:text-xs">
+              {t.topNotice}
             </span>
           </div>
-          <div className="hidden md:flex items-center gap-4 text-white/80 text-[11px]">
+
+          <div className="flex items-center gap-3 text-white/90 text-[11px] shrink-0">
+            {/* Quick Language Selector Dropdown */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setLangDropdownOpen(!langDropdownOpen)}
+                className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 text-[#ffdcc3] px-2 py-0.5 rounded-full transition-colors cursor-pointer border border-white/15"
+                title={t.changeLanguageTooltip}
+                id="header-lang-picker-btn"
+              >
+                <span>{currentLangObj.flag}</span>
+                <span className="font-bold text-[10px] uppercase tracking-wide">{currentLangObj.code}</span>
+                <span className="material-symbols-outlined text-[12px]">expand_more</span>
+              </button>
+
+              {langDropdownOpen && (
+                <div
+                  className="absolute right-0 mt-1.5 w-44 bg-white dark:bg-[#131b2e] text-[#111c2d] dark:text-white rounded-2xl shadow-2xl border border-[#dee8ff] dark:border-[#263554] p-1.5 z-50 animate-in fade-in"
+                  onClick={() => setLangDropdownOpen(false)}
+                >
+                  <p className="px-2 py-1 text-[10px] font-bold text-[#887364] dark:text-[#94a3b8] uppercase tracking-wider">
+                    {t.languageSelectLabel}
+                  </p>
+                  {LANGUAGE_OPTIONS.map((lo) => (
+                    <button
+                      key={lo.code}
+                      type="button"
+                      onClick={() => setLanguage(lo.code)}
+                      className={`w-full text-left px-2.5 py-1.5 rounded-xl text-xs flex items-center justify-between hover:bg-[#f0f3ff] dark:hover:bg-[#1e293b] cursor-pointer transition-colors ${
+                        language === lo.code
+                          ? 'font-bold text-[#8d4b00] dark:text-[#ffdcc3] bg-[#fffaf5] dark:bg-[#1a253c]'
+                          : ''
+                      }`}
+                    >
+                      <span className="flex items-center gap-2">
+                        <span>{lo.flag}</span>
+                        <span>{lo.nativeName}</span>
+                      </span>
+                      {language === lo.code && (
+                        <span className="material-symbols-outlined text-xs">check</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Quick Theme Toggle (Light / Dark) */}
+            <button
+              type="button"
+              onClick={() => setTheme(isDark ? 'light' : 'dark')}
+              className="flex items-center gap-1 bg-white/10 hover:bg-white/20 text-[#ffdcc3] px-2 py-0.5 rounded-full transition-colors cursor-pointer border border-white/15"
+              title={t.toggleThemeTooltip}
+              id="header-quick-theme-btn"
+            >
+              <span className="material-symbols-outlined text-[13px]">
+                {isDark ? 'light_mode' : 'dark_mode'}
+              </span>
+              <span className="hidden md:inline text-[10px] font-bold">{isDark ? 'Light' : 'Dark'}</span>
+            </button>
+
+            {/* Settings Modal Button */}
+            <button
+              type="button"
+              onClick={onOpenSettings}
+              className="flex items-center gap-1 bg-white/10 hover:bg-white/20 text-[#ffdcc3] px-2 py-0.5 rounded-full transition-colors cursor-pointer border border-white/15"
+              title={t.openSettingsTooltip}
+              id="header-quick-settings-btn"
+            >
+              <span className="material-symbols-outlined text-[13px]">settings</span>
+              <span className="hidden lg:inline text-[10px] font-bold">{t.settings}</span>
+            </button>
+
+            <span className="hidden md:inline opacity-40">•</span>
+
             <button 
               onClick={() => setCurrentScreen('health-safety')}
-              className="hover:text-[#ffdcc3] transition-colors cursor-pointer"
+              className="hidden md:inline hover:text-[#ffdcc3] transition-colors cursor-pointer"
             >
-              7-Point Ethical Standard
+              {t.ethicalStandard}
             </button>
-            <span>•</span>
+            <span className="hidden md:inline opacity-40">•</span>
             <button 
               onClick={() => setCurrentScreen('verified-breeders')}
-              className="hover:text-[#ffdcc3] transition-colors cursor-pointer"
+              className="hidden md:inline hover:text-[#ffdcc3] transition-colors cursor-pointer"
             >
-              Breeder Verification Directory
+              {t.breederDirectory}
             </button>
-            <span>•</span>
+            <span className="hidden md:inline opacity-40">•</span>
             <button 
               id="header-owner-portal-btn"
               onClick={() => setCurrentScreen('owner-portal')}
@@ -86,7 +187,7 @@ export const Header: React.FC<HeaderProps> = ({
               title="Platform Owner Console for Approving Pictures and Names"
             >
               <span className="material-symbols-outlined text-[13px]">shield_person</span>
-              <span>Owner Portal</span>
+              <span>{t.ownerPortal}</span>
             </button>
           </div>
         </div>
@@ -115,7 +216,7 @@ export const Header: React.FC<HeaderProps> = ({
                 </span>
               </div>
               <p className="text-[11px] text-[#554336] font-medium hidden sm:block">
-                Ethical Dogs, Puppies & Canine Gear
+                Ethical Dogs, Puppies & Canine Necessities
               </p>
             </div>
           </button>
@@ -134,10 +235,12 @@ export const Header: React.FC<HeaderProps> = ({
                 onChange={(e) => setSearchCategory(e.target.value)}
                 className="appearance-none bg-transparent pl-3 pr-7 py-2 text-xs font-semibold text-[#111c2d] cursor-pointer focus:outline-none"
               >
-                <option value="all">All Catalog</option>
-                <option value="dogs">Dogs & Puppies</option>
-                <option value="gear">Pet Gear & Equipment</option>
-                <option value="rescues">Rescue Shelters</option>
+                <option value="all">{t.allCatalog}</option>
+                <option value="dogs">{t.dogsPuppies}</option>
+                <option value="gear">{t.petGear}</option>
+                <option value="vets">{t.navVetFinder || 'Vet Finder'}</option>
+                <option value="grooming">{t.navGrooming || 'Dog Grooming'}</option>
+                <option value="rescues">{t.rescueShelters}</option>
               </select>
               <span className="material-symbols-outlined absolute right-2 top-2.5 text-base text-[#887364] pointer-events-none">
                 expand_more
@@ -154,23 +257,30 @@ export const Header: React.FC<HeaderProps> = ({
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search breed, 'Golden Retriever', or 'Orthopedic Bed'..."
+                placeholder={t.searchPlaceholder}
                 className="w-full bg-transparent text-xs text-[#111c2d] placeholder-[#887364] focus:outline-none"
               />
             </div>
 
             {/* Zip code input */}
-            <div className="flex items-center border-l border-[#dee8ff] px-3 py-1">
-              <span className="material-symbols-outlined text-base text-[#887364] mr-1">
-                location_on
-              </span>
+            <div className="flex items-center border-l border-[#dee8ff] px-2.5 py-1">
+              <button
+                type="button"
+                onClick={handleAskLocationAccess}
+                title="Ask access for location (GPS)"
+                className="p-1 hover:bg-[#ffdcc3] text-[#8d4b00] rounded-full transition-colors cursor-pointer mr-1 flex items-center justify-center shrink-0"
+              >
+                <span className={`material-symbols-outlined text-base ${isLocating ? 'animate-spin' : ''}`}>
+                  {isLocating ? 'sync' : 'near_me'}
+                </span>
+              </button>
               <input
                 id="header-zip-input"
                 type="text"
                 value={zipCode}
                 onChange={(e) => setZipCode(e.target.value)}
-                placeholder="Zip e.g. 78701"
-                className="w-24 bg-transparent text-xs text-[#111c2d] placeholder-[#887364] focus:outline-none"
+                placeholder={t.zipPlaceholder}
+                className="w-20 bg-transparent text-xs text-[#111c2d] placeholder-[#887364] focus:outline-none"
               />
             </div>
 
@@ -180,7 +290,7 @@ export const Header: React.FC<HeaderProps> = ({
               type="submit"
               className="bg-[#8d4b00] hover:bg-[#b15f00] text-white px-4 py-2 rounded-full text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer"
             >
-              <span>Explore</span>
+              <span>{t.exploreBtn}</span>
               <span className="material-symbols-outlined text-sm">arrow_forward</span>
             </button>
           </form>
@@ -195,7 +305,7 @@ export const Header: React.FC<HeaderProps> = ({
               className="hidden sm:inline-flex items-center gap-1.5 text-xs font-bold text-[#8d4b00] bg-[#ffdcc3] hover:bg-[#ffb77d] px-3.5 py-2 rounded-full transition-colors cursor-pointer"
             >
               <span className="material-symbols-outlined text-sm">add_circle</span>
-              <span>Post Listing</span>
+              <span>{t.postListing}</span>
             </button>
 
             {/* Wishlist Button */}
@@ -203,7 +313,7 @@ export const Header: React.FC<HeaderProps> = ({
               id="header-wishlist-btn"
               onClick={onOpenWishlist}
               className="relative p-2 text-[#554336] hover:text-[#8d4b00] hover:bg-[#f0f3ff] rounded-full transition-colors cursor-pointer"
-              title="Saved Favorites"
+              title={t.savedFavorites}
             >
               <span className="material-symbols-outlined text-xl">favorite</span>
               {wishlistCount > 0 && (
@@ -218,7 +328,7 @@ export const Header: React.FC<HeaderProps> = ({
               id="header-cart-btn"
               onClick={onOpenCart}
               className="relative p-2 text-[#554336] hover:text-[#8d4b00] hover:bg-[#f0f3ff] rounded-full transition-colors cursor-pointer"
-              title="Shopping Bag"
+              title={t.shoppingBag}
             >
               <span className="material-symbols-outlined text-xl">shopping_bag</span>
               {cartCount > 0 && (
@@ -226,6 +336,30 @@ export const Header: React.FC<HeaderProps> = ({
                   {cartCount}
                 </span>
               )}
+            </button>
+
+            {/* Theme Toggle Button in Navbar */}
+            <button
+              id="navbar-theme-toggle-btn"
+              type="button"
+              onClick={() => setTheme(isDark ? 'light' : 'dark')}
+              className="p-2 text-[#554336] hover:text-[#8d4b00] hover:bg-[#f0f3ff] rounded-full transition-colors cursor-pointer"
+              title={t.toggleThemeTooltip}
+            >
+              <span className="material-symbols-outlined text-xl">
+                {isDark ? 'light_mode' : 'dark_mode'}
+              </span>
+            </button>
+
+            {/* Settings Modal Button in Navbar */}
+            <button
+              id="navbar-settings-modal-btn"
+              type="button"
+              onClick={onOpenSettings}
+              className="p-2 text-[#554336] hover:text-[#8d4b00] hover:bg-[#f0f3ff] rounded-full transition-colors cursor-pointer"
+              title={t.openSettingsTooltip}
+            >
+              <span className="material-symbols-outlined text-xl">settings</span>
             </button>
 
             {/* User Profile Avatar with dropdown or Login button */}
@@ -316,6 +450,30 @@ export const Header: React.FC<HeaderProps> = ({
                         <span className="material-symbols-outlined text-base">verified_user</span>
                         <span>DNA & Health Vault</span>
                       </button>
+                      <button 
+                        onClick={() => { setCurrentScreen('vet-finder'); setProfileOpen(false); }}
+                        className="w-full text-left px-3 py-2 hover:bg-rose-50 text-rose-800 rounded-xl flex items-center gap-2 cursor-pointer font-semibold"
+                      >
+                        <span className="material-symbols-outlined text-base text-rose-600">local_hospital</span>
+                        <span>Find Certified Vets & 24/7 ER</span>
+                      </button>
+                      <button 
+                        onClick={() => { setCurrentScreen('grooming-finder'); setProfileOpen(false); }}
+                        className="w-full text-left px-3 py-2 hover:bg-emerald-50 text-emerald-800 rounded-xl flex items-center gap-2 cursor-pointer font-semibold"
+                      >
+                        <span className="material-symbols-outlined text-base text-emerald-600">content_cut</span>
+                        <span>Find Dog Grooming & Spas</span>
+                      </button>
+
+                      {/* Settings & Appearance */}
+                      <button 
+                        id="profile-dropdown-settings-btn"
+                        onClick={() => { onOpenSettings(); setProfileOpen(false); }}
+                        className="w-full text-left px-3 py-2 hover:bg-[#f0f3ff] rounded-xl text-[#554336] flex items-center gap-2 cursor-pointer font-medium"
+                      >
+                        <span className="material-symbols-outlined text-base text-[#8d4b00]">settings</span>
+                        <span>{t.settings} & {t.tabAppearance}</span>
+                      </button>
 
                       <div className="border-t border-[#f0f3ff] my-1"></div>
 
@@ -325,7 +483,7 @@ export const Header: React.FC<HeaderProps> = ({
                         className="w-full text-left px-3 py-2 bg-[#ffdcc3]/30 hover:bg-[#ffdcc3]/70 rounded-xl text-[#8d4b00] flex items-center gap-2 cursor-pointer font-bold"
                       >
                         <span className="material-symbols-outlined text-base text-[#8d4b00]">shield_person</span>
-                        <span>Owner Portal (Approvals)</span>
+                        <span>{t.ownerPortal}</span>
                       </button>
                     </div>
 
@@ -336,7 +494,7 @@ export const Header: React.FC<HeaderProps> = ({
                         className="w-full text-left px-3 py-2 text-[#a33900] hover:bg-[#ffdad6]/40 rounded-xl flex items-center gap-2 cursor-pointer font-medium"
                       >
                         <span className="material-symbols-outlined text-base">logout</span>
-                        <span>Sign Out</span>
+                        <span>{t.signOut}</span>
                       </button>
                     </div>
                   </div>
@@ -349,7 +507,7 @@ export const Header: React.FC<HeaderProps> = ({
                 className="flex items-center gap-1.5 px-3.5 py-2 bg-[#8d4b00] hover:bg-[#b15f00] text-white rounded-full text-xs font-bold transition-all shadow-xs cursor-pointer whitespace-nowrap"
               >
                 <span className="material-symbols-outlined text-base">person</span>
-                <span>Log In / Sign Up</span>
+                <span>{t.logInSignUp}</span>
               </button>
             )}
 
@@ -379,6 +537,16 @@ export const Header: React.FC<HeaderProps> = ({
               className="w-full px-2 py-1.5 text-xs bg-transparent focus:outline-none"
             />
             <button
+              type="button"
+              onClick={handleAskLocationAccess}
+              title="Ask access for location (GPS)"
+              className="p-1.5 text-[#8d4b00] hover:bg-[#ffdcc3] rounded-lg cursor-pointer mr-1 flex items-center justify-center shrink-0"
+            >
+              <span className={`material-symbols-outlined text-base ${isLocating ? 'animate-spin' : ''}`}>
+                {isLocating ? 'sync' : 'near_me'}
+              </span>
+            </button>
+            <button
               type="submit"
               className="bg-[#8d4b00] text-white px-3 py-1.5 rounded-lg text-xs font-bold"
             >
@@ -403,7 +571,7 @@ export const Header: React.FC<HeaderProps> = ({
               }`}
             >
               <span className="material-symbols-outlined text-[16px]">home</span>
-              <span>Home</span>
+              <span>{t.navHome}</span>
             </button>
 
             <button
@@ -416,9 +584,25 @@ export const Header: React.FC<HeaderProps> = ({
               }`}
             >
               <span className="material-symbols-outlined text-[16px]">pets</span>
-              <span>Find Dogs</span>
+              <span>{t.navFindDogs}</span>
               <span className="bg-[#ffdcc3] text-[#8d4b00] text-[10px] px-1 rounded-full font-bold">
-                10 Available
+                10
+              </span>
+            </button>
+
+            <button
+              id="nav-tab-recommended"
+              onClick={() => setCurrentScreen('recommended-dogs')}
+              className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+                currentScreen === 'recommended-dogs'
+                  ? 'bg-[#8d4b00] text-white shadow-sm'
+                  : 'text-[#554336] hover:bg-[#dee8ff]/70'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[16px]">auto_awesome</span>
+              <span>{t.navRecommended}</span>
+              <span className="bg-[#ffdcc3] text-[#8d4b00] text-[10px] px-1 rounded-full font-bold">
+                Match
               </span>
             </button>
 
@@ -432,23 +616,42 @@ export const Header: React.FC<HeaderProps> = ({
               }`}
             >
               <span className="material-symbols-outlined text-[16px]">health_and_safety</span>
-              <span>Dog Equipment & Gear</span>
+              <span>{t.navDogGear}</span>
               <span className="bg-[#82f5c1] text-[#006c4a] text-[10px] px-1 rounded-full font-bold">
                 Vet Vetted
               </span>
             </button>
 
             <button
-              id="nav-tab-dog-detail"
-              onClick={() => setCurrentScreen('dog-detail')}
+              id="nav-tab-vet-finder"
+              onClick={() => setCurrentScreen('vet-finder')}
               className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
-                currentScreen === 'dog-detail'
+                currentScreen === 'vet-finder'
                   ? 'bg-[#8d4b00] text-white shadow-sm'
                   : 'text-[#554336] hover:bg-[#dee8ff]/70'
               }`}
             >
-              <span className="material-symbols-outlined text-[16px]">stars</span>
-              <span>{selectedDog ? `${selectedDog.name} (${selectedDog.breed})` : 'Pup Profile'}</span>
+              <span className="material-symbols-outlined text-[16px]">local_hospital</span>
+              <span>{t.navVetFinder || 'Vet Finder'}</span>
+              <span className="bg-rose-100 text-rose-700 text-[10px] px-1.5 py-0.2 rounded-full font-bold">
+                24/7 ER
+              </span>
+            </button>
+
+            <button
+              id="nav-tab-grooming"
+              onClick={() => setCurrentScreen('grooming-finder')}
+              className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+                currentScreen === 'grooming-finder'
+                  ? 'bg-[#8d4b00] text-white shadow-sm'
+                  : 'text-[#554336] hover:bg-[#dee8ff]/70'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[16px]">content_cut</span>
+              <span>{t.navGrooming || 'Grooming'}</span>
+              <span className="bg-amber-100 text-[#8d4b00] text-[10px] px-1.5 py-0.2 rounded-full font-bold">
+                Spas & Mobile
+              </span>
             </button>
 
             <button
@@ -461,7 +664,7 @@ export const Header: React.FC<HeaderProps> = ({
               }`}
             >
               <span className="material-symbols-outlined text-[16px]">verified</span>
-              <span>Verified Breeders</span>
+              <span>{t.navVerifiedBreeders}</span>
             </button>
 
             <button
@@ -474,14 +677,14 @@ export const Header: React.FC<HeaderProps> = ({
               }`}
             >
               <span className="material-symbols-outlined text-[16px]">shield_with_heart</span>
-              <span>7-Point Ethical Pledge</span>
+              <span>{t.navPledge}</span>
             </button>
           </div>
 
           <div className="hidden md:flex items-center gap-3 text-xs text-[#554336]">
             <span className="flex items-center gap-1 text-[#006c4a] font-semibold">
               <span className="w-2 h-2 rounded-full bg-[#006c4a] inline-block animate-ping"></span>
-              Escrow Protection Active
+              {t.escrowActive}
             </span>
           </div>
         </div>
@@ -493,38 +696,61 @@ export const Header: React.FC<HeaderProps> = ({
               onClick={() => { setCurrentScreen('home'); setMobileMenuOpen(false); }}
               className="w-full text-left px-3 py-2 text-xs font-bold text-[#111c2d] hover:bg-[#e7eeff] rounded-lg"
             >
-              Home
+              {t.navHome}
             </button>
             <button
               onClick={() => { setCurrentScreen('find-dogs'); setMobileMenuOpen(false); }}
               className="w-full text-left px-3 py-2 text-xs font-bold text-[#111c2d] hover:bg-[#e7eeff] rounded-lg"
             >
-              Find Dogs & Puppies
+              {t.navFindDogs}
+            </button>
+            <button
+              onClick={() => { setCurrentScreen('recommended-dogs'); setMobileMenuOpen(false); }}
+              className="w-full text-left px-3 py-2 text-xs font-bold text-[#8d4b00] bg-[#ffdcc3]/30 hover:bg-[#ffdcc3]/60 rounded-lg flex items-center justify-between"
+            >
+              <span className="flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-sm">auto_awesome</span>
+                <span>{t.navRecommended}</span>
+              </span>
+              <span className="text-[10px] bg-[#8d4b00] text-white px-2 py-0.5 rounded-full font-bold">Match</span>
             </button>
             <button
               onClick={() => { setCurrentScreen('dog-gear'); setMobileMenuOpen(false); }}
               className="w-full text-left px-3 py-2 text-xs font-bold text-[#111c2d] hover:bg-[#e7eeff] rounded-lg"
             >
-              Dog Equipment & Gear
+              {t.navDogGear}
             </button>
             <button
-              onClick={() => { setCurrentScreen('dog-detail'); setMobileMenuOpen(false); }}
-              className="w-full text-left px-3 py-2 text-xs font-bold text-[#111c2d] hover:bg-[#e7eeff] rounded-lg flex items-center justify-between"
+              onClick={() => { setCurrentScreen('vet-finder'); setMobileMenuOpen(false); }}
+              className="w-full text-left px-3 py-2 text-xs font-bold text-rose-800 bg-rose-50 hover:bg-rose-100 rounded-lg flex items-center justify-between"
             >
-              <span>{selectedDog ? `${selectedDog.name}'s Profile` : 'Pup Profile'}</span>
-              <span className="text-[10px] text-[#8d4b00] font-semibold">{selectedDog?.breed}</span>
+              <span className="flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-sm text-rose-600">local_hospital</span>
+                <span>{t.navVetFinder || 'Vet Finder'}</span>
+              </span>
+              <span className="text-[10px] bg-rose-200 text-rose-800 px-1.5 py-0.5 rounded-full font-bold">24/7 ER</span>
+            </button>
+            <button
+              onClick={() => { setCurrentScreen('grooming-finder'); setMobileMenuOpen(false); }}
+              className="w-full text-left px-3 py-2 text-xs font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 rounded-lg flex items-center justify-between"
+            >
+              <span className="flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-sm text-emerald-600">content_cut</span>
+                <span>{t.navGrooming || 'Dog Grooming'}</span>
+              </span>
+              <span className="text-[10px] bg-emerald-200 text-emerald-800 px-1.5 py-0.5 rounded-full font-bold">Spas & Vans</span>
             </button>
             <button
               onClick={() => { setCurrentScreen('verified-breeders'); setMobileMenuOpen(false); }}
               className="w-full text-left px-3 py-2 text-xs font-bold text-[#111c2d] hover:bg-[#e7eeff] rounded-lg"
             >
-              Verified Breeders
+              {t.navVerifiedBreeders}
             </button>
             <button
               onClick={() => { setCurrentScreen('health-safety'); setMobileMenuOpen(false); }}
               className="w-full text-left px-3 py-2 text-xs font-bold text-[#111c2d] hover:bg-[#e7eeff] rounded-lg"
             >
-              7-Point Health & Ethical Pledge
+              {t.navPledge}
             </button>
             <button
               id="mobile-owner-portal-btn"
@@ -533,10 +759,27 @@ export const Header: React.FC<HeaderProps> = ({
             >
               <span className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-sm">shield_person</span>
-                <span>Owner Portal (Approvals)</span>
+                <span>{t.ownerPortal}</span>
               </span>
               <span className="text-[10px] uppercase font-bold bg-[#8d4b00] text-white px-1.5 py-0.5 rounded">Owner</span>
             </button>
+
+            {/* Mobile Settings button */}
+            <button
+              id="mobile-settings-btn"
+              onClick={() => { onOpenSettings(); setMobileMenuOpen(false); }}
+              className="w-full text-left px-3 py-2 text-xs font-bold text-[#111c2d] bg-[#f0f3ff] hover:bg-[#dee8ff] rounded-lg flex items-center justify-between cursor-pointer"
+            >
+              <span className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-sm text-[#8d4b00]">settings</span>
+                <span>{t.settings} & {t.tabAppearance}</span>
+              </span>
+              <span className="text-[10px] text-[#887364] flex items-center gap-1">
+                <span>{currentLangObj.flag}</span>
+                <span>{isDark ? '🌙 Dark' : '☀️ Light'}</span>
+              </span>
+            </button>
+
             {/* User status in mobile menu */}
             <div className="pt-2 border-t border-[#dee8ff]">
               {user.isLoggedIn ? (
@@ -564,7 +807,7 @@ export const Header: React.FC<HeaderProps> = ({
                     onClick={() => { onLogout(); setMobileMenuOpen(false); }}
                     className="w-full text-center py-1.5 text-[#a33900] text-xs font-semibold hover:underline"
                   >
-                    Sign Out
+                    {t.signOut}
                   </button>
                 </div>
               ) : (
@@ -573,7 +816,7 @@ export const Header: React.FC<HeaderProps> = ({
                   className="w-full bg-[#8d4b00] text-white py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5"
                 >
                   <span className="material-symbols-outlined text-sm">person</span>
-                  <span>Log In / Sign Up</span>
+                  <span>{t.logInSignUp}</span>
                 </button>
               )}
             </div>
@@ -583,7 +826,7 @@ export const Header: React.FC<HeaderProps> = ({
                 onClick={() => { onOpenPostListing(); setMobileMenuOpen(false); }}
                 className="w-full bg-[#111c2d] text-white py-2 rounded-xl text-xs font-bold"
               >
-                + Post Ethical Listing
+                + {t.postListing}
               </button>
             </div>
           </div>

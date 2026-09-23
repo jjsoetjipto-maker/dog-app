@@ -1,14 +1,17 @@
 import React, { useState } from 'react';
 import { PawPrint } from 'lucide-react';
 import { Screen } from '../types';
+import { useSettings } from '../context/SettingsContext';
 
 interface FooterProps {
   setCurrentScreen: (screen: Screen) => void;
   onShowToast: (msg: string) => void;
   onSelectFeaturedDog?: () => void;
+  onOpenSettings?: () => void;
 }
 
-export const Footer: React.FC<FooterProps> = ({ setCurrentScreen, onShowToast, onSelectFeaturedDog }) => {
+export const Footer: React.FC<FooterProps> = ({ setCurrentScreen, onShowToast, onSelectFeaturedDog, onOpenSettings }) => {
+  const { t } = useSettings();
   const [email, setEmail] = useState('');
 
   const handleNewsletter = (e: React.FormEvent) => {
@@ -29,29 +32,29 @@ export const Footer: React.FC<FooterProps> = ({ setCurrentScreen, onShowToast, o
           <div className="flex items-start gap-3">
             <span className="material-symbols-outlined text-[#85f8c4] text-3xl">verified</span>
             <div>
-              <h4 className="font-bold text-sm text-white">100% OFA & DNA Screened</h4>
-              <p className="text-xs text-[#dee8ff]/70 mt-1">Every breeding parent genetic clearance is uploaded to public registry.</p>
+              <h4 className="font-bold text-sm text-white">{t.footerOfaTitle}</h4>
+              <p className="text-xs text-[#dee8ff]/70 mt-1">{t.footerOfaDesc}</p>
             </div>
           </div>
           <div className="flex items-start gap-3">
             <span className="material-symbols-outlined text-[#ffdcc3] text-3xl">lock</span>
             <div>
-              <h4 className="font-bold text-sm text-white">PawPalace Safe Escrow</h4>
-              <p className="text-xs text-[#dee8ff]/70 mt-1">Breeder is paid only after your independent 72-hour veterinary check.</p>
+              <h4 className="font-bold text-sm text-white">{t.footerEscrowTitle}</h4>
+              <p className="text-xs text-[#dee8ff]/70 mt-1">{t.footerEscrowDesc}</p>
             </div>
           </div>
           <div className="flex items-start gap-3">
             <span className="material-symbols-outlined text-[#82f5c1] text-3xl">local_shipping</span>
             <div>
-              <h4 className="font-bold text-sm text-white">Ethical Chaperoned Delivery</h4>
-              <p className="text-xs text-[#dee8ff]/70 mt-1">Climate-controlled flight nannies and ground travel; never cargo freight.</p>
+              <h4 className="font-bold text-sm text-white">{t.footerDeliveryTitle}</h4>
+              <p className="text-xs text-[#dee8ff]/70 mt-1">{t.footerDeliveryDesc}</p>
             </div>
           </div>
           <div className="flex items-start gap-3">
             <span className="material-symbols-outlined text-[#ffb77d] text-3xl">medical_services</span>
             <div>
-              <h4 className="font-bold text-sm text-white">10-Year Genetic Health Warranty</h4>
-              <p className="text-xs text-[#dee8ff]/70 mt-1">Comprehensive contractual coverage against hereditary disorders.</p>
+              <h4 className="font-bold text-sm text-white">{t.footerWarrantyTitle}</h4>
+              <p className="text-xs text-[#dee8ff]/70 mt-1">{t.footerWarrantyDesc}</p>
             </div>
           </div>
         </div>
@@ -59,10 +62,10 @@ export const Footer: React.FC<FooterProps> = ({ setCurrentScreen, onShowToast, o
 
       {/* Main Footer Links */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 pb-12 border-b border-[#263143]">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 pb-12 border-b border-[#263143]">
           
           {/* Brand Col */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-1">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-2xl bg-[#ffdcc3] border border-[#ffcfad] shadow-xs flex items-center justify-center text-[#8d4b00]">
                 <PawPrint className="w-6 h-6 text-[#8d4b00] fill-[#8d4b00]" />
@@ -71,21 +74,21 @@ export const Footer: React.FC<FooterProps> = ({ setCurrentScreen, onShowToast, o
                 Paw<span className="text-[#ffdcc3]">Palace</span>
               </span>
             </div>
-            <p className="text-xs text-[#dee8ff]/80 leading-relaxed max-w-sm mb-6">
-              The gold standard in ethical canine placement. Connecting discerning guardians with strictly audited home breeders, certified rescues, and veterinarian-engineered canine gear.
+            <p className="text-xs text-[#dee8ff]/80 leading-relaxed max-w-sm mb-4">
+              {t.footerMission}
             </p>
             
             {/* Trust Badges */}
-            <div className="flex items-center gap-3 text-xs text-[#82f5c1] font-semibold">
+            <div className="flex items-center gap-2 text-[11px] text-[#82f5c1] font-semibold">
               <span className="material-symbols-outlined text-base">military_tech</span>
-              <span>AKC Bred with H.E.A.R.T. Compliant & USDA Licensed</span>
+              <span>AKC Bred with H.E.A.R.T. Compliant</span>
             </div>
           </div>
 
           {/* Col 1: Find a Dog */}
           <div>
             <h4 className="font-bold text-sm text-[#ffdcc3] tracking-wider uppercase mb-4">
-              Find Companions
+              {t.navFindDogs}
             </h4>
             <ul className="space-y-2.5 text-xs text-[#dee8ff]/80">
               <li>
@@ -93,17 +96,7 @@ export const Footer: React.FC<FooterProps> = ({ setCurrentScreen, onShowToast, o
                   onClick={() => setCurrentScreen('find-dogs')}
                   className="hover:text-white transition-colors cursor-pointer text-left"
                 >
-                  All Verified Dogs & Puppies
-                </button>
-              </li>
-              <li>
-                <button 
-                  onClick={() => {
-                    setCurrentScreen('home');
-                  }}
-                  className="hover:text-white transition-colors cursor-pointer text-left"
-                >
-                  Tips on How to Raise Dogs (Guide)
+                  {t.catAllDogs}
                 </button>
               </li>
               <li>
@@ -127,7 +120,7 @@ export const Footer: React.FC<FooterProps> = ({ setCurrentScreen, onShowToast, o
                   onClick={() => setCurrentScreen('find-dogs')}
                   className="hover:text-white transition-colors cursor-pointer text-left"
                 >
-                  Shelter & Rescue Dogs
+                  {t.catRescueShelter}
                 </button>
               </li>
               <li>
@@ -135,24 +128,40 @@ export const Footer: React.FC<FooterProps> = ({ setCurrentScreen, onShowToast, o
                   onClick={() => setCurrentScreen('verified-breeders')}
                   className="hover:text-white transition-colors cursor-pointer text-left"
                 >
-                  Breeder Directory
+                  {t.navVerifiedBreeders}
                 </button>
               </li>
             </ul>
           </div>
 
-          {/* Col 2: Canine Gear */}
+          {/* Col 2: Dog Necessities */}
           <div>
             <h4 className="font-bold text-sm text-[#ffdcc3] tracking-wider uppercase mb-4">
-              Vetted Gear
+              {t.navDogGear}
             </h4>
             <ul className="space-y-2.5 text-xs text-[#dee8ff]/80">
               <li>
                 <button 
                   onClick={() => setCurrentScreen('dog-gear')}
+                  className="hover:text-white transition-colors cursor-pointer text-left font-medium text-white"
+                >
+                  {t.allGearTab}
+                </button>
+              </li>
+              <li>
+                <button 
+                  onClick={() => setCurrentScreen('dog-gear')}
                   className="hover:text-white transition-colors cursor-pointer text-left"
                 >
-                  All Canine Equipment
+                  Raw Dog Food & Whole Prey Patties
+                </button>
+              </li>
+              <li>
+                <button 
+                  onClick={() => setCurrentScreen('dog-gear')}
+                  className="hover:text-white transition-colors cursor-pointer text-left"
+                >
+                  Cold-Pressed Salmon & DHA Puppy Stew
                 </button>
               </li>
               <li>
@@ -198,27 +207,95 @@ export const Footer: React.FC<FooterProps> = ({ setCurrentScreen, onShowToast, o
             </ul>
           </div>
 
-          {/* Col 3: Ethical Compass Newsletter */}
+          {/* Col 3: Vet Finder & Clinical Care */}
+          <div>
+            <h4 className="font-bold text-sm text-rose-300 tracking-wider uppercase mb-4 flex items-center gap-1.5">
+              <span className="material-symbols-outlined text-sm text-rose-400">local_hospital</span>
+              <span>{t.navVetFinder || 'Vet Finder'}</span>
+            </h4>
+            <ul className="space-y-2.5 text-xs text-[#dee8ff]/80">
+              <li>
+                <button 
+                  onClick={() => setCurrentScreen('vet-finder')}
+                  className="hover:text-white transition-colors cursor-pointer text-left text-rose-200 font-semibold flex items-center gap-1"
+                >
+                  <span>24/7 Emergency Hospitals</span>
+                  <span className="bg-rose-500/30 text-rose-300 text-[10px] px-1 rounded">ER</span>
+                </button>
+              </li>
+              <li>
+                <button 
+                  onClick={() => setCurrentScreen('vet-finder')}
+                  className="hover:text-white transition-colors cursor-pointer text-left"
+                >
+                  AAHA Accredited Clinics
+                </button>
+              </li>
+              <li>
+                <button 
+                  onClick={() => setCurrentScreen('vet-finder')}
+                  className="hover:text-white transition-colors cursor-pointer text-left"
+                >
+                  Fear Free Certified Vets
+                </button>
+              </li>
+              <li>
+                <button 
+                  onClick={() => setCurrentScreen('vet-finder')}
+                  className="hover:text-white transition-colors cursor-pointer text-left"
+                >
+                  Pediatric Puppy Vaccines
+                </button>
+              </li>
+              <li>
+                <button 
+                  onClick={() => setCurrentScreen('vet-finder')}
+                  className="hover:text-white transition-colors cursor-pointer text-left"
+                >
+                  OFA Radiographs & Vetting
+                </button>
+              </li>
+              <li>
+                <button 
+                  onClick={() => setCurrentScreen('vet-finder')}
+                  className="hover:text-white transition-colors cursor-pointer text-left text-amber-300 font-bold"
+                >
+                  Book Vet Appointment
+                </button>
+              </li>
+              <li className="pt-2 border-t border-white/10">
+                <button 
+                  onClick={() => setCurrentScreen('grooming-finder')}
+                  className="hover:text-white transition-colors cursor-pointer text-left text-emerald-300 font-bold flex items-center gap-1.5"
+                >
+                  <span className="material-symbols-outlined text-sm text-emerald-400">content_cut</span>
+                  <span>Grooming Salons & Mobile Vans</span>
+                </button>
+              </li>
+            </ul>
+          </div>
+
+          {/* Col 4: Ethical Compass Newsletter */}
           <div>
             <h4 className="font-bold text-sm text-[#ffdcc3] tracking-wider uppercase mb-4">
-              Ethical Compass
+              {t.newsletterTitle}
             </h4>
             <p className="text-xs text-[#dee8ff]/70 leading-relaxed mb-3">
-              Monthly vet-reviewed breed genetics digests, recall alerts, and puppy readiness roadmaps.
+              {t.newsletterDesc}
             </p>
             <form onSubmit={handleNewsletter} className="space-y-2">
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter guardian email"
+                placeholder={t.newsletterPlaceholder}
                 className="w-full px-3 py-2 text-xs bg-[#263143] border border-[#3b485d] rounded-lg text-white placeholder-[#dee8ff]/40 focus:outline-none focus:border-[#ffdcc3]"
               />
               <button
                 type="submit"
                 className="w-full bg-[#8d4b00] hover:bg-[#b15f00] text-white py-2 rounded-lg text-xs font-bold transition-colors cursor-pointer"
               >
-                Join Compass
+                {t.subscribeBtn}
               </button>
             </form>
           </div>
@@ -227,8 +304,15 @@ export const Footer: React.FC<FooterProps> = ({ setCurrentScreen, onShowToast, o
 
         {/* Bottom copyright */}
         <div className="pt-8 flex flex-col md:flex-row items-center justify-between text-xs text-[#dee8ff]/60 gap-4">
-          <p>© 2026 PawPalace Inc. All rights reserved. Zero-Tolerance Puppy Mill Standard Enforced.</p>
-          <div className="flex items-center gap-6">
+          <p>{t.rightsReserved}</p>
+          <div className="flex items-center flex-wrap gap-4 sm:gap-6">
+            <button 
+              onClick={() => setCurrentScreen('vet-finder')}
+              className="text-rose-300 hover:text-white flex items-center gap-1 font-semibold transition-colors cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-xs text-rose-400">local_hospital</span>
+              <span>Find Certified Vets</span>
+            </button>
             <button 
               onClick={() => setCurrentScreen('health-safety')}
               className="hover:text-white transition-colors cursor-pointer"
@@ -247,6 +331,17 @@ export const Footer: React.FC<FooterProps> = ({ setCurrentScreen, onShowToast, o
             >
               Veterinary Review Protocol
             </button>
+            {onOpenSettings && (
+              <button 
+                id="footer-settings-btn"
+                onClick={onOpenSettings}
+                className="hover:text-white flex items-center gap-1 transition-colors cursor-pointer text-[#ffdcc3]"
+                title="Application Settings, Theme & Language"
+              >
+                <span className="material-symbols-outlined text-xs">settings</span>
+                <span>Settings & Theme</span>
+              </button>
+            )}
             <button 
               id="footer-owner-portal-btn"
               onClick={() => setCurrentScreen('owner-portal')}

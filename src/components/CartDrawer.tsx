@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { CartItem } from '../types';
+import { useSettings } from '../context/SettingsContext';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -18,6 +19,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   onRemoveItem,
   onShowToast
 }) => {
+  const { t, formatPrice } = useSettings();
   const [promoCode, setPromoCode] = useState('');
   const [discountApplied, setDiscountApplied] = useState(false);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
@@ -62,7 +64,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-[#8d4b00] text-2xl">shopping_bag</span>
             <h3 className="font-bold text-base text-[#111c2d]">
-              Your Canine Equipment Bag ({cart.reduce((acc, i) => acc + i.quantity, 0)})
+              {t.cartTitle} ({cart.reduce((acc, i) => acc + i.quantity, 0)})
             </h3>
           </div>
           <button
@@ -84,8 +86,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
           ) : (
             <div>
               <div className="flex justify-between text-[#554336] mb-1 font-medium">
-                <span>Add ${(freeShippingThreshold - subtotal).toFixed(2)} more for Free Shipping</span>
-                <span>${subtotal.toFixed(2)} / $75.00</span>
+                <span>Add {formatPrice(freeShippingThreshold - subtotal)} more for Free Shipping</span>
+                <span>{formatPrice(subtotal)} / {formatPrice(75)}</span>
               </div>
               <div className="w-full h-1.5 bg-[#dee8ff] rounded-full overflow-hidden">
                 <div 
@@ -104,9 +106,9 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
               <div className="w-16 h-16 bg-[#f0f3ff] rounded-full flex items-center justify-center mx-auto mb-3 text-[#887364]">
                 <span className="material-symbols-outlined text-3xl">shopping_cart</span>
               </div>
-              <h4 className="font-bold text-[#111c2d] text-sm">Your bag is empty</h4>
+              <h4 className="font-bold text-[#111c2d] text-sm">{t.cartEmptyTitle}</h4>
               <p className="text-xs text-[#887364] mt-1 max-w-xs mx-auto">
-                Explore our veterinarian-tested orthopedic beds, tactical harnesses, and safety crates.
+                {t.cartEmptyDesc}
               </p>
             </div>
           ) : (
@@ -198,22 +200,22 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
           <div className="p-4 border-t border-[#e7eeff] bg-white space-y-3">
             <div className="space-y-1.5 text-xs text-[#554336]">
               <div className="flex justify-between">
-                <span>Subtotal</span>
-                <span>${rawSubtotal.toFixed(2)}</span>
+                <span>{t.subtotalLabel}</span>
+                <span>{formatPrice(rawSubtotal)}</span>
               </div>
               {discountApplied && (
                 <div className="flex justify-between text-[#006c4a] font-semibold">
                   <span>Vet Care 15% Discount</span>
-                  <span>-${discountAmount.toFixed(2)}</span>
+                  <span>-{formatPrice(discountAmount)}</span>
                 </div>
               )}
               <div className="flex justify-between">
-                <span>Shipping</span>
-                <span>{shipping === 0 ? 'FREE' : `$${shipping.toFixed(2)}`}</span>
+                <span>{t.freeShippingLabel}</span>
+                <span>{shipping === 0 ? 'FREE' : formatPrice(shipping)}</span>
               </div>
               <div className="flex justify-between pt-1 border-t border-[#dee8ff] font-bold text-sm text-[#111c2d]">
-                <span>Total Due</span>
-                <span className="text-[#8d4b00]">${total.toFixed(2)}</span>
+                <span>{t.totalLabel}</span>
+                <span className="text-[#8d4b00]">{formatPrice(total)}</span>
               </div>
             </div>
 
@@ -231,7 +233,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
               ) : (
                 <>
                   <span className="material-symbols-outlined text-base">lock</span>
-                  <span>Proceed to Escrow Checkout • ${total.toFixed(2)}</span>
+                  <span>{t.checkoutBtn} • {formatPrice(total)}</span>
                 </>
               )}
             </button>

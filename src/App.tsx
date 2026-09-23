@@ -11,14 +11,19 @@ import { DogDetailScreen } from './components/DogDetailScreen';
 import { FindDogsScreen } from './components/FindDogsScreen';
 import { VerifiedBreedersScreen } from './components/VerifiedBreedersScreen';
 import { HealthSafetyScreen } from './components/HealthSafetyScreen';
+import { RecommendedDogsScreen } from './components/RecommendedDogsScreen';
 import { OwnerPortalScreen } from './components/OwnerPortalScreen';
+import { VetFinderScreen } from './components/VetFinderScreen';
+import { GroomingFinderScreen } from './components/GroomingFinderScreen';
 import { ChatDrawer } from './components/ChatDrawer';
 import { CartDrawer } from './components/CartDrawer';
 import { WishlistDrawer } from './components/WishlistDrawer';
 import { PostListingModal } from './components/PostListingModal';
 import { AuthModal } from './components/AuthModal';
 import { EditProfileModal } from './components/EditProfileModal';
+import { SettingsModal } from './components/SettingsModal';
 import { Toast } from './components/Toast';
+import { requestCurrentGPSLocation } from './services/locationService';
 
 export default function App() {
   // Managed dogs state (persisted in localStorage with approval statuses)
@@ -55,6 +60,15 @@ export default function App() {
   const [user, setUser] = useState<UserProfile>(loadStoredUser);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
   const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState<boolean>(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
+
+  // Google Maps Quota defense state
+  const [isGmpQuotaExceeded, setIsGmpQuotaExceeded] = useState<boolean>(false);
+  useEffect(() => {
+    const handleQuota = () => setIsGmpQuotaExceeded(true);
+    window.addEventListener('gmp-quota-exceeded', handleQuota);
+    return () => window.removeEventListener('gmp-quota-exceeded', handleQuota);
+  }, []);
 
   // Cart state
   const [cart, setCart] = useState<CartItem[]>([
@@ -127,6 +141,20 @@ export default function App() {
     }
   }, [toastMessage]);
 
+  // Attempt to acquire device GPS on initial load to make GPS the current location app-wide
+  useEffect(() => {
+    requestCurrentGPSLocation()
+      .then((coords) => {
+        if (coords.lat > 32.5) setZipCode('75201'); // Dallas
+        else if (coords.lng > -96.2) setZipCode('77002'); // Houston
+        else if (coords.lat < 29.6) setZipCode('78205'); // San Antonio
+        else setZipCode('78701'); // Austin
+      })
+      .catch(() => {
+        // Silent catch if user has not yet interacted with permissions
+      });
+  }, []);
+
   // Auth & Profile handlers
   const handleLoginSuccess = (loggedInUser: UserProfile) => {
     setUser(loggedInUser);
@@ -188,16 +216,102 @@ export default function App() {
     );
   };
 
-  // Rejection check helper
+  // User & Owner rejected dog IDs (persisted in localStorage)
+  const [rejectedDogIds, setRejectedDogIds] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('pawpalace_rejected_dog_ids');
+      if (saved) return JSON.parse(saved);
+    } catch {
+      // ignore
+    }
+    return [];
+  });
+
+  const handleRejectDog = (id: string) => {
+    setRejectedDogIds((prev) => {
+      const next = prev.includes(id) ? prev : [...prev, id];
+      try {
+        localStorage.setItem('pawpalace_rejected_dog_ids', JSON.stringify(next));
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+
+    // Also update dog's approvalStatus so owner governance and persistence stay synchronized
+    setDogs((prev) => {
+      const updated = prev.map((d) => (d.id === id ? { ...d, approvalStatus: 'rejected' as const } : d));
+      saveManagedDogs(updated);
+      return updated;
+    });
+
+    const targetDog = dogs.find((d) => d.id === id);
+    showToast(`Rejected ${targetDog ? targetDog.name : 'dog'}. It will not appear in Dog of the Day or marketplace.`);
+  };
+
+  const handleRestoreDog = (id: string) => {
+    setRejectedDogIds((prev) => {
+      const next = prev.filter((item) => item !== id);
+      try {
+        localStorage.setItem('pawpalace_rejected_dog_ids', JSON.stringify(next));
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+
+    setDogs((prev) => {
+      const updated = prev.map((d) =>
+        d.id === id
+          ? {
+              ...d,
+              approvalStatus: 'approved' as const,
+              photoApprovalStatus: 'approved' as const,
+              nameApprovalStatus: 'approved' as const
+            }
+          : d
+      );
+      saveManagedDogs(updated);
+      return updated;
+    });
+
+    const targetDog = dogs.find((d) => d.id === id);
+    showToast(`Restored ${targetDog ? targetDog.name : 'dog'} to active listings!`);
+  };
+
+  const handleRestoreAllDogs = () => {
+    setRejectedDogIds([]);
+    try {
+      localStorage.removeItem('pawpalace_rejected_dog_ids');
+    } catch {
+      // ignore
+    }
+
+    setDogs((prev) => {
+      const updated = prev.map((d) => ({
+        ...d,
+        approvalStatus: 'approved' as const,
+        photoApprovalStatus: 'approved' as const,
+        nameApprovalStatus: 'approved' as const
+      }));
+      saveManagedDogs(updated);
+      return updated;
+    });
+
+    showToast('Restored all rejected listings. All dogs are now available.');
+  };
+
+  // Rejection check helper: either in rejectedDogIds OR rejected in moderation
   const isDogRejected = (d: Dog) =>
+    rejectedDogIds.includes(d.id) ||
     d.approvalStatus === 'rejected' ||
     d.photoApprovalStatus === 'rejected' ||
     d.nameApprovalStatus === 'rejected';
 
-  // Public shop dogs: strictly excludes any dog rejected by the owner
+  // Public shop dogs: strictly excludes any dog rejected by the owner or user
   const shopDogs = useMemo(() => {
     return dogs.filter((d) => !isDogRejected(d));
-  }, [dogs]);
+  }, [dogs, rejectedDogIds]);
 
   // Public shop gear: strictly excludes any gear rejected by the owner
   const shopGearProducts = useMemo(() => {
@@ -219,6 +333,10 @@ export default function App() {
   const handleTriggerSearch = () => {
     if (searchCategory === 'gear') {
       setCurrentScreen('dog-gear');
+    } else if (searchCategory === 'vets') {
+      setCurrentScreen('vet-finder');
+    } else if (searchCategory === 'grooming') {
+      setCurrentScreen('grooming-finder');
     } else {
       setCurrentScreen('find-dogs');
     }
@@ -285,6 +403,30 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#f9f9ff] text-[#111c2d] selection:bg-[#ffdcc3] selection:text-[#8d4b00]">
+      {/* Google Maps Quota Exhaustion Banner */}
+      {isGmpQuotaExceeded && (
+        <div className="bg-amber-50 border-b border-amber-200 text-amber-900 px-4 py-2.5 text-xs md:text-sm text-center sticky top-0 z-50 shadow-sm flex items-center justify-between gap-4">
+          <span className="flex-1 text-center">
+            Google Maps Platform quota reached. If you are the app owner, visit{' '}
+            <a
+              href="https://developers.google.com/maps/ai/ai-studio?utm_campaign=gmp_mcp_codeassist_v1_aistudio#quota_exceeded_errors"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline font-semibold text-amber-950 hover:text-amber-800"
+            >
+              maps developer site
+            </a>{' '}
+            for instructions to update your account.
+          </span>
+          <button 
+            onClick={() => setIsGmpQuotaExceeded(false)}
+            className="text-amber-800 hover:text-amber-950 font-bold px-2 py-0.5 rounded cursor-pointer"
+            aria-label="Dismiss banner"
+          >
+            ✕
+          </button>
+        </div>
+      )}
       
       {/* Navigation Header */}
       <Header
@@ -300,6 +442,7 @@ export default function App() {
         wishlistCount={wishlistItemsCount}
         onOpenWishlist={() => setIsWishlistOpen(true)}
         onOpenPostListing={() => handleOpenPostListing('dog')}
+        onOpenSettings={() => setIsSettingsOpen(true)}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         zipCode={zipCode}
@@ -314,6 +457,7 @@ export default function App() {
         {currentScreen === 'home' && (
           <HomeScreen
             dogs={shopDogs}
+            allDogs={dogs}
             gear={shopGearProducts}
             onSelectDog={(dog) => {
               setSelectedDog(dog);
@@ -327,12 +471,17 @@ export default function App() {
             favoritedGearIds={favoritedGearIds}
             setCurrentScreen={setCurrentScreen}
             onShowToast={showToast}
+            onRejectDog={handleRejectDog}
+            onRestoreDog={handleRestoreDog}
+            onRestoreAllDogs={handleRestoreAllDogs}
+            rejectedDogIds={rejectedDogIds}
           />
         )}
 
         {currentScreen === 'find-dogs' && (
           <FindDogsScreen
             dogs={shopDogs}
+            allDogs={dogs}
             onSelectDog={(dog) => {
               setSelectedDog(dog);
               setCurrentScreen('dog-detail');
@@ -344,6 +493,10 @@ export default function App() {
             onShowToast={showToast}
             initialSearchQuery={searchQuery}
             onOpenPostListing={() => handleOpenPostListing('dog')}
+            onRejectDog={handleRejectDog}
+            onRestoreDog={handleRestoreDog}
+            onRestoreAllDogs={handleRestoreAllDogs}
+            rejectedDogIds={rejectedDogIds}
           />
         )}
 
@@ -368,6 +521,25 @@ export default function App() {
             recommendedGear={shopGearProducts}
             setCurrentScreen={setCurrentScreen}
             onShowToast={showToast}
+            onRejectDog={handleRejectDog}
+            onRestoreDog={handleRestoreDog}
+            rejectedDogIds={rejectedDogIds}
+          />
+        )}
+
+        {currentScreen === 'recommended-dogs' && (
+          <RecommendedDogsScreen
+            dogs={shopDogs}
+            onSelectDog={(dog) => {
+              setSelectedDog(dog);
+              setCurrentScreen('dog-detail');
+            }}
+            onOpenChat={handleOpenChat}
+            onToggleFavorite={handleToggleDogFavorite}
+            favoritedDogIds={favoritedDogIds}
+            setCurrentScreen={setCurrentScreen}
+            onShowToast={showToast}
+            onRejectDog={handleRejectDog}
           />
         )}
 
@@ -388,6 +560,21 @@ export default function App() {
           <HealthSafetyScreen
             setCurrentScreen={setCurrentScreen}
             onShowToast={showToast}
+          />
+        )}
+
+        {currentScreen === 'vet-finder' && (
+          <VetFinderScreen
+            onShowToast={showToast}
+            currentUser={user}
+            initialSearchZip={zipCode}
+          />
+        )}
+
+        {currentScreen === 'grooming-finder' && (
+          <GroomingFinderScreen
+            onShowToast={showToast}
+            currentUser={user}
           />
         )}
       </main>
@@ -456,6 +643,13 @@ export default function App() {
         onShowToast={showToast}
       />
 
+      {/* Settings & Language / Dark Mode Modal */}
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+        onShowToast={showToast}
+      />
+
       {/* Feedback Toast */}
       <Toast message={toastMessage} onClose={() => setToastMessage(null)} />
 
@@ -464,6 +658,7 @@ export default function App() {
         setCurrentScreen={setCurrentScreen} 
         onShowToast={showToast}
         onSelectFeaturedDog={() => setSelectedDog(DOGS[0])}
+        onOpenSettings={() => setIsSettingsOpen(true)}
       />
 
     </div>

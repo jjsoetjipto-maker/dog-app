@@ -39,8 +39,8 @@ export const OwnerPortalScreen: React.FC<OwnerPortalScreenProps> = ({
       return false;
     }
   });
-  const [accountInput, setAccountInput] = useState('');
   const [passcode, setPasscode] = useState('');
+  const [showPasscode, setShowPasscode] = useState(false);
   const [authError, setAuthError] = useState('');
 
   // Active tab in owner portal
@@ -119,22 +119,18 @@ export const OwnerPortalScreen: React.FC<OwnerPortalScreenProps> = ({
   // Auth Handlers
   const handleLogin = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (
-      accountInput.trim().toLowerCase() === OWNER_DEFAULT_EMAIL.toLowerCase() &&
-      passcode.trim() === OWNER_DEFAULT_PASSCODE
-    ) {
+    if (passcode.trim() === OWNER_DEFAULT_PASSCODE) {
       setIsAuthenticated(true);
       setAuthError('');
       sessionStorage.setItem('pawpalace_owner_authenticated', 'true');
       onShowToast('Owner access verified! Welcome to the Executive Moderation Suite.');
     } else {
-      setAuthError('Invalid owner account or password. Access denied.');
+      setAuthError('Invalid owner password. Access denied.');
     }
   };
 
   const handleLogoutOwner = () => {
     setIsAuthenticated(false);
-    setAccountInput('');
     setPasscode('');
     setAuthError('');
     sessionStorage.removeItem('pawpalace_owner_authenticated');
@@ -560,31 +556,28 @@ export const OwnerPortalScreen: React.FC<OwnerPortalScreenProps> = ({
 
           <form onSubmit={handleLogin} className="space-y-4 relative" autoComplete="off">
             <div>
-              <label className="block text-xs font-semibold text-[#cbd7ef] mb-1.5">
-                Owner Account
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-semibold text-[#cbd7ef]">
+                  Owner Password
+                </label>
+                <button
+                  id="toggle-owner-passcode-visibility"
+                  type="button"
+                  onClick={() => setShowPasscode(!showPasscode)}
+                  className="text-[11px] text-[#9fb0cf] hover:text-[#ffdcc3] transition-colors cursor-pointer"
+                >
+                  {showPasscode ? 'Hide' : 'Show'}
+                </button>
+              </div>
               <input
-                type="text"
-                value={accountInput}
-                onChange={(e) => setAccountInput(e.target.value)}
-                placeholder="Enter owner account"
-                autoComplete="off"
-                className="w-full px-3.5 py-2.5 bg-[#0b111e] border border-[#2b3d5a] focus:border-[#ffdcc3] rounded-xl text-xs text-white placeholder-[#5c7094] focus:outline-none transition-colors"
-                autoFocus
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-[#cbd7ef] mb-1.5">
-                Owner Password
-              </label>
-              <input
-                type="password"
+                id="owner-password-input"
+                type={showPasscode ? 'text' : 'password'}
                 value={passcode}
                 onChange={(e) => setPasscode(e.target.value)}
-                placeholder="Enter password"
-                autoComplete="new-password"
+                placeholder="Enter password (paste393)"
+                autoComplete="current-password"
                 className="w-full px-3.5 py-2.5 bg-[#0b111e] border border-[#2b3d5a] focus:border-[#ffdcc3] rounded-xl text-xs text-white placeholder-[#5c7094] focus:outline-none transition-colors"
+                autoFocus
               />
             </div>
 
@@ -602,7 +595,7 @@ export const OwnerPortalScreen: React.FC<OwnerPortalScreenProps> = ({
                 className="w-full py-3 bg-[#d97706] hover:bg-[#b45309] text-white rounded-xl text-xs font-bold tracking-wide transition-colors cursor-pointer shadow-lg shadow-[#d97706]/20 flex items-center justify-center gap-2"
               >
                 <span className="material-symbols-outlined text-base">login</span>
-                <span>Authenticate as Owner</span>
+                <span>Unlock Owner Portal</span>
               </button>
 
               <button

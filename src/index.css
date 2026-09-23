@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --color-primary: #8d4b00;
   --color-primary-container: #b15f00;
@@ -76,11 +78,96 @@
     font-family: 'Plus Jakarta Sans', sans-serif;
     color: var(--color-on-surface);
     background-color: var(--color-surface);
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+
+  html.dark {
+    color-scheme: dark;
+  }
+
+  html.dark body,
+  body.dark {
+    background-color: #0b1120;
+    color: #f1f5f9;
   }
 
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Epilogue', serif;
   }
+}
+
+/* Dark mode global overrides for seamless theme switching */
+html.dark .bg-\[\#ffffff\],
+html.dark .bg-white {
+  background-color: #131b2e !important;
+}
+
+html.dark .bg-\[\#f9f9ff\] {
+  background-color: #0b1120 !important;
+}
+
+html.dark .bg-\[\#f0f3ff\] {
+  background-color: #162035 !important;
+}
+
+html.dark .bg-\[\#f0f3ff\]\/80 {
+  background-color: rgba(22, 32, 53, 0.95) !important;
+}
+
+html.dark .bg-\[\#e7eeff\] {
+  background-color: #1c2842 !important;
+}
+
+html.dark .bg-\[\#dee8ff\] {
+  background-color: #233150 !important;
+}
+
+html.dark .text-\[\#111c2d\] {
+  color: #f8fafc !important;
+}
+
+html.dark .text-\[\#554336\] {
+  color: #cbd5e1 !important;
+}
+
+html.dark .text-\[\#887364\] {
+  color: #94a3b8 !important;
+}
+
+html.dark .border-\[\#e7eeff\],
+html.dark .border-\[\#dee8ff\],
+html.dark .border-\[\#dbc2b0\] {
+  border-color: #233150 !important;
+}
+
+html.dark header {
+  background-color: #101726 !important;
+  border-bottom-color: #1f2b42 !important;
+}
+
+html.dark nav {
+  background-color: #131d2e !important;
+  border-color: #1f2b42 !important;
+}
+
+html.dark footer {
+  background-color: #090e1a !important;
+  border-top-color: #1a243a !important;
+}
+
+html.dark input,
+html.dark select,
+html.dark textarea {
+  color: #f8fafc;
+}
+
+html.dark input::placeholder {
+  color: #64748b;
+}
+
+html.dark option {
+  background-color: #131b2e;
+  color: #f8fafc;
 }
 
 /* Material Symbols icon sizing and font setting */

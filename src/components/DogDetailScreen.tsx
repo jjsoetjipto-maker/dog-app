@@ -4,6 +4,7 @@ import { getFallbackMeetingPoints } from '../data/meetingPointsData';
 import { SafeMeetingPointModal } from './SafeMeetingPointModal';
 import { DogIndividualPriceChart } from './DogIndividualPriceChart';
 import { getSellerForDog, getDogActivities } from '../data/dogCareAndActivities';
+import { useSettings } from '../context/SettingsContext';
 
 interface DogDetailScreenProps {
   dog: Dog;
@@ -13,7 +14,10 @@ interface DogDetailScreenProps {
   onAddToCart: (product: GearProduct) => void;
   recommendedGear: GearProduct[];
   setCurrentScreen: (screen: Screen) => void;
-  onShowToast: (msg: string) => void;
+  onShowToast?: (msg: string) => void;
+  onRejectDog?: (id: string) => void;
+  onRestoreDog?: (id: string) => void;
+  rejectedDogIds?: string[];
 }
 
 export const DogDetailScreen: React.FC<DogDetailScreenProps> = ({
@@ -24,8 +28,17 @@ export const DogDetailScreen: React.FC<DogDetailScreenProps> = ({
   onAddToCart,
   recommendedGear,
   setCurrentScreen,
-  onShowToast
+  onShowToast,
+  onRejectDog,
+  onRestoreDog,
+  rejectedDogIds = []
 }) => {
+  const { t, formatPrice } = useSettings();
+  const isDogRejected =
+    rejectedDogIds.includes(dog.id) ||
+    dog.approvalStatus === 'rejected' ||
+    dog.photoApprovalStatus === 'rejected' ||
+    dog.nameApprovalStatus === 'rejected';
   const seller = getSellerForDog(dog);
   const activities = getDogActivities(dog);
 
@@ -80,11 +93,11 @@ export const DogDetailScreen: React.FC<DogDetailScreenProps> = ({
       {/* Breadcrumbs */}
       <nav className="flex items-center gap-2 text-xs text-[#887364]">
         <button onClick={() => setCurrentScreen('home')} className="hover:text-[#8d4b00] cursor-pointer">
-          Home
+          {t.navHome}
         </button>
         <span>/</span>
         <button onClick={() => setCurrentScreen('find-dogs')} className="hover:text-[#8d4b00] cursor-pointer">
-          Find Dogs
+          {t.navFindDogs}
         </button>
         <span>/</span>
         <span className="text-[#554336]">{dog.breed}</span>
@@ -92,31 +105,47 @@ export const DogDetailScreen: React.FC<DogDetailScreenProps> = ({
         <span className="text-[#111c2d] font-bold">{dog.name}</span>
       </nav>
 
-      {/* Owner Moderation Rejection Alert Banner (Hidden from Shop) */}
-      {(dog.approvalStatus === 'rejected' || dog.photoApprovalStatus === 'rejected' || dog.nameApprovalStatus === 'rejected') && (
+      {/* Owner Moderation or User Rejection Alert Banner (Hidden from Shop) */}
+      {isDogRejected && (
         <div className="bg-red-50 border-2 border-red-300 rounded-3xl p-5 flex flex-col sm:flex-row items-start gap-4 shadow-sm text-red-950 animate-in fade-in duration-300">
           <div className="w-10 h-10 rounded-2xl bg-red-100 border border-red-300 flex items-center justify-center shrink-0 text-red-700">
-            <span className="material-symbols-outlined text-2xl">block</span>
+            <span className="material-symbols-outlined text-2xl">visibility_off</span>
           </div>
           <div className="flex-1 space-y-1.5">
             <div className="flex flex-wrap items-center gap-2">
               <h3 className="font-bold text-sm text-red-900">
-                Listing Rejected by Platform Owner • Excluded from Shop
+                {rejectedDogIds.includes(dog.id)
+                  ? 'Listing Rejected by You • Excluded from Shop & Daily Highlights'
+                  : 'Listing Rejected by Platform Owner • Excluded from Shop'}
               </h3>
               <span className="bg-red-700 text-white text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                Unavailable
+                Rejected / Hidden
               </span>
             </div>
             <p className="text-xs text-red-800 leading-relaxed">
-              This companion listing was rejected by the owner during pedigree, health clearance, or photo moderation.
-              It is not listed in the public marketplace or searchable catalog, and adoption applications are locked.
+              {rejectedDogIds.includes(dog.id)
+                ? 'You have rejected this dog. It is hidden from your Dog of the Day, home highlights, and verified shop listings.'
+                : 'This companion listing was rejected by the owner during pedigree, health clearance, or photo moderation. It is not listed in the public marketplace or searchable catalog, and adoption applications are locked.'}
             </p>
             {(dog.photoNotes || dog.nameNotes) && (
               <p className="text-[11px] text-red-700 bg-red-100/70 p-2.5 rounded-xl border border-red-200 mt-2 italic">
                 Moderation Notes: &ldquo;{dog.photoNotes || dog.nameNotes}&rdquo;
               </p>
             )}
-            <div className="pt-2">
+            <div className="pt-2 flex flex-wrap gap-2">
+              {onRestoreDog && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onRestoreDog(dog.id);
+                    onShowToast(`Restored ${dog.name} to active listings!`);
+                  }}
+                  className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl inline-flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+                >
+                  <span className="material-symbols-outlined text-sm">replay</span>
+                  <span>Restore {dog.name} to Active Listings</span>
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => setCurrentScreen('find-dogs')}
@@ -547,9 +576,9 @@ export const DogDetailScreen: React.FC<DogDetailScreenProps> = ({
             {/* Fee Display */}
             <div className="p-4 rounded-2xl bg-[#f9f9ff] border border-[#dee8ff]">
               <div className="flex items-baseline justify-between">
-                <span className="text-xs text-[#887364] font-medium">Placement / Adoption Fee</span>
+                <span className="text-xs text-[#887364] font-medium">{t.adoptionFeeLabel}</span>
                 <span className="font-['Epilogue'] font-bold text-2xl text-[#8d4b00]">
-                  ${dog.price.toLocaleString()}
+                  {formatPrice(dog.price)}
                 </span>
               </div>
               <p className="text-[11px] text-[#006c4a] mt-1 font-semibold flex items-center gap-1">
@@ -565,7 +594,7 @@ export const DogDetailScreen: React.FC<DogDetailScreenProps> = ({
                 className="w-full bg-[#8d4b00] hover:bg-[#b15f00] text-white py-3.5 rounded-2xl font-bold text-xs transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-md text-center"
               >
                 <span className="material-symbols-outlined text-base">assignment</span>
-                <span>Apply to Welcome {dog.name}</span>
+                <span>{t.reserveEscrowBtn} ({dog.name})</span>
               </a>
 
               <button
@@ -584,6 +613,38 @@ export const DogDetailScreen: React.FC<DogDetailScreenProps> = ({
                 <span className="material-symbols-outlined text-sm">sports_baseball</span>
                 <span>Ask: What does {dog.name} like to do?</span>
               </button>
+
+              {/* Reject / Restore Quick Action */}
+              {isDogRejected ? (
+                onRestoreDog && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onRestoreDog(dog.id);
+                      onShowToast(`Restored ${dog.name} to active listings!`);
+                    }}
+                    className="w-full bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 py-2.5 rounded-xl font-bold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <span className="material-symbols-outlined text-base text-emerald-700">replay</span>
+                    <span>Restore Dog to Active Listings</span>
+                  </button>
+                )
+              ) : (
+                onRejectDog && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onRejectDog(dog.id);
+                      onShowToast(`Rejected ${dog.name}. Excluded from Dog of the Day and Shop.`);
+                    }}
+                    className="w-full bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 py-2.5 rounded-xl font-bold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                    title="Hide and reject this dog from your catalog and Dog of the Day"
+                  >
+                    <span className="material-symbols-outlined text-base text-red-600">visibility_off</span>
+                    <span>Reject / Hide This Listing</span>
+                  </button>
+                )
+              )}
             </div>
 
             {/* Seller Summary Card */}
@@ -882,18 +943,18 @@ export const DogDetailScreen: React.FC<DogDetailScreenProps> = ({
             )}
           </div>
 
-          {/* Recommended Starter Gear for Dog */}
+          {/* Recommended Starter Necessities for Dog */}
           <div className="bg-white rounded-3xl p-6 border border-[#dee8ff] shadow-xs space-y-4">
             <div className="flex items-center justify-between">
               <h4 className="font-bold text-xs text-[#111c2d] flex items-center gap-1.5">
                 <span className="material-symbols-outlined text-base text-[#006c4a]">shopping_bag</span>
-                <span>Recommended Starter Gear for {dog.name}</span>
+                <span>Recommended Starter Necessities for {dog.name}</span>
               </h4>
               <button
                 onClick={() => setCurrentScreen('dog-gear')}
                 className="text-[11px] font-bold text-[#8d4b00] hover:underline cursor-pointer"
               >
-                View All Gear
+                {t.navDogGear}
               </button>
             </div>
 
@@ -904,12 +965,12 @@ export const DogDetailScreen: React.FC<DogDetailScreenProps> = ({
                   <div className="flex-1 min-w-0">
                     <h5 className="font-bold text-xs text-[#111c2d] truncate">{item.name}</h5>
                     <p className="text-[11px] text-[#887364]">{item.brand}</p>
-                    <p className="text-xs font-bold text-[#8d4b00] mt-0.5">${item.price.toFixed(2)}</p>
+                    <p className="text-xs font-bold text-[#8d4b00] mt-0.5">{formatPrice(item.price)}</p>
                   </div>
                   <button
                     onClick={() => {
                       onAddToCart(item);
-                      onShowToast(`Added ${item.name} to bag!`);
+                      onShowToast?.(`Added ${item.name} to bag!`);
                     }}
                     className="bg-[#111c2d] hover:bg-[#8d4b00] text-white p-2 rounded-xl transition-colors cursor-pointer"
                     title="Add to bag"
@@ -919,6 +980,30 @@ export const DogDetailScreen: React.FC<DogDetailScreenProps> = ({
                 </div>
               ))}
             </div>
+          </div>
+
+          {/* Local Veterinary Care & Escrow Checkup */}
+          <div className="bg-gradient-to-br from-rose-950/20 via-rose-900/10 to-transparent rounded-3xl p-5 border border-rose-200 shadow-xs space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-rose-700 font-bold text-xs">
+                <span className="material-symbols-outlined text-base text-rose-600">local_hospital</span>
+                <span>Veterinary Care & 72h Escrow Checkup</span>
+              </div>
+              <span className="text-[10px] bg-rose-100 text-rose-800 font-bold px-2 py-0.5 rounded-full">
+                AAHA & 24/7 ER
+              </span>
+            </div>
+            <p className="text-[11px] text-[#554336] leading-relaxed">
+              Your 72-hour escrow guarantee requires an initial checkup. Locate accredited hospitals and board-certified veterinarians in <strong>{dog.location}</strong>.
+            </p>
+            <button
+              type="button"
+              onClick={() => setCurrentScreen('vet-finder')}
+              className="w-full bg-rose-600 hover:bg-rose-700 text-white py-2.5 rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+            >
+              <span className="material-symbols-outlined text-sm">search</span>
+              <span>Find Certified Vets in {dog.location}</span>
+            </button>
           </div>
 
         </div>

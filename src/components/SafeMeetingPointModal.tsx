@@ -10,7 +10,7 @@ interface SafeMeetingPointModalProps {
   dogBreed?: string;
   selectedMeetingPoint: SafeMeetingPoint | null;
   onSelectMeetingPoint: (point: SafeMeetingPoint) => void;
-  onShowToast: (msg: string) => void;
+  onShowToast?: (msg: string) => void;
 }
 
 export const SafeMeetingPointModal: React.FC<SafeMeetingPointModalProps> = ({
@@ -49,11 +49,11 @@ export const SafeMeetingPointModal: React.FC<SafeMeetingPointModalProps> = ({
   // Request user's device geolocation to pass to retrievalConfig
   const handleUseMyLocation = () => {
     if (!navigator.geolocation) {
-      onShowToast('Geolocation is not supported by your browser.');
+      onShowToast?.('Geolocation is not supported by your browser.');
       return;
     }
 
-    onShowToast('Detecting your nearby coordinates for Google Maps...');
+    onShowToast?.('Detecting your nearby coordinates for Google Maps...');
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const coords = {
@@ -61,12 +61,12 @@ export const SafeMeetingPointModal: React.FC<SafeMeetingPointModalProps> = ({
           lng: position.coords.longitude,
         };
         setUserCoords(coords);
-        onShowToast(`Location acquired (${coords.lat.toFixed(3)}, ${coords.lng.toFixed(3)}). Fetching nearby meeting points...`);
+        onShowToast?.(`Location acquired (${coords.lat.toFixed(3)}, ${coords.lng.toFixed(3)}). Fetching nearby meeting points...`);
         fetchGroundedMeetingPoints(searchLocation, coords);
       },
       (err) => {
         console.warn('Geolocation error:', err);
-        onShowToast('Could not retrieve GPS coordinates. Searching by city name instead.');
+        onShowToast?.('Could not retrieve GPS coordinates. Searching by city name instead.');
         fetchGroundedMeetingPoints(searchLocation);
       },
       { timeout: 8000 }
@@ -135,7 +135,7 @@ export const SafeMeetingPointModal: React.FC<SafeMeetingPointModalProps> = ({
 
         setPoints(newPoints);
         setGroundingNotice(`Retrieved ${newPoints.length} verified meeting locations from Google Maps via Gemini 3.5 Flash.`);
-        onShowToast('Google Maps Grounding updated meeting points!');
+        onShowToast?.('Google Maps Grounding updated meeting points!');
       } else {
         // Use verified database for this location
         const fallback = getFallbackMeetingPoints(targetLocation);
@@ -143,7 +143,7 @@ export const SafeMeetingPointModal: React.FC<SafeMeetingPointModalProps> = ({
         setGroundingNotice(
           data.notice || 'Showing PawPalace certified safe meeting points with direct Google Maps verification.'
         );
-        onShowToast(`Safe meeting points for ${targetLocation} loaded!`);
+        onShowToast?.(`Safe meeting points for ${targetLocation} loaded!`);
       }
     } catch (err: any) {
       console.error('Error fetching meeting points:', err);
@@ -420,7 +420,7 @@ export const SafeMeetingPointModal: React.FC<SafeMeetingPointModalProps> = ({
                           type="button"
                           onClick={() => {
                             onSelectMeetingPoint(point);
-                            onShowToast(`Selected "${point.name}" as meeting location!`);
+                            onShowToast?.(`Selected "${point.name}" as meeting location!`);
                           }}
                           className={`w-full sm:w-36 py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all ${
                             isSelected

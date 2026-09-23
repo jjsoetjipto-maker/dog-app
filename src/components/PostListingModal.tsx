@@ -152,7 +152,7 @@ export const PostListingModal: React.FC<PostListingModalProps> = ({
           sizes: ['Small (15-25 lbs)', 'Medium (25-50 lbs)', 'Large (50-85 lbs)']
         };
         onAddGear(newGear);
-        onShowToast(`Equipment listing for "${newGear.name}" with photo added to catalog!`);
+        onShowToast(`Dog necessity listing for "${newGear.name}" with photo added to catalog!`);
       }
 
       onClose();
@@ -174,12 +174,12 @@ export const PostListingModal: React.FC<PostListingModalProps> = ({
               </span>
               <div>
                 <h3 className="font-['Epilogue'] font-bold text-base">
-                  {listingType === 'dog' ? 'List a Companion Dog or Puppy' : 'List Canine Gear & Equipment'}
+                  {listingType === 'dog' ? 'List a Companion Dog or Puppy' : 'List Dog Necessity / Product'}
                 </h3>
                 <p className="text-xs text-[#dee8ff]/80">
                   {listingType === 'dog'
                     ? 'Tier-1 Certified Breeder & Shelter Placement Standard'
-                    : 'Verified Safe Equipment & Ergonomic Gear Standard'}
+                    : 'Verified Safe Dog Necessities & Ergonomic Care Standard'}
                 </p>
               </div>
             </div>
@@ -220,7 +220,7 @@ export const PostListingModal: React.FC<PostListingModalProps> = ({
                   }`}
                 >
                   <span className="material-symbols-outlined text-base">fitness_center</span>
-                  <span>Canine Gear / Equipment</span>
+                  <span>Dog Necessities / Product</span>
                 </button>
               </div>
             </div>
@@ -232,13 +232,13 @@ export const PostListingModal: React.FC<PostListingModalProps> = ({
                   <label className="font-bold text-sm text-[#111c2d] flex items-center gap-1.5">
                     <span className="material-symbols-outlined text-base text-[#8d4b00]">photo_camera</span>
                     <span>
-                      {listingType === 'dog' ? 'Dog Photo (Camera or Upload) *' : 'Equipment Photo (Camera or Upload) *'}
+                      {listingType === 'dog' ? 'Dog Photo (Camera or Upload) *' : 'Necessity Photo (Camera or Upload) *'}
                     </span>
                   </label>
                   <p className="text-[11px] text-[#554336] mt-0.5">
                     {listingType === 'dog'
                       ? 'Take a live photo of your dog or litter for ethical verification.'
-                      : 'Take a clear photo of the gear showing its authenticity and condition.'}
+                      : 'Take a clear photo of the necessity item showing its authenticity and condition.'}
                   </p>
                 </div>
 
